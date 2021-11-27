@@ -7,6 +7,7 @@ Autor: Carlos Armando De Castro (cadecastro.com)
 """
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 #Importar datos de Datos Abiertos Colombia:
 columnas=['Nombre departamento','Edad','Sexo','Estado','Fecha de muerte']
 datos=pd.read_csv('https://www.datos.gov.co/api/views/gt2j-8ykr/rows.csv',usecols=columnas)
@@ -76,6 +77,7 @@ print('Estadísticas de edad de los casos:')
 print(stat_edad_casos)
 print('Estadísticas de edad de las muertes:')
 print(stat_edad_muertes)
+print('Tasa de letalidad por caso =',np.format_float_positional(stat_edad_muertes['count']/stat_edad_casos['count']*100,precision=2),'%')
 #GRÁFICAS BOGOTÁ:
 #Gráfica de muertes diarias:
 plt.figure(4)
@@ -109,6 +111,7 @@ print('Estadísticas de edad de los casos:')
 print(stat_edad_casos_bog)
 print('Estadísticas de edad de las muertes:')
 print(stat_edad_muertes_bog)
+print('Tasa de letalidad por caso =',np.format_float_positional(stat_edad_muertes_bog['count']/stat_edad_casos_bog['count']*100,precision=2),'%')
 #DEPARTAMENTO ADICIONAL A ANALIZAR:
 depto=str(input('Departamento o distrito adicional a analizar:'))
 #Casos y muertes:
@@ -132,6 +135,7 @@ print('Estadísticas de edad de los casos:')
 print(stat_edad_casos_dep)
 print('Estadísticas de edad de las muertes:')
 print(stat_edad_muertes_dep)
+print('Tasa de letalidad por caso =',np.format_float_positional(stat_edad_muertes_dep['count']/stat_edad_casos_dep['count']*100,precision=2),'%')
 #GRÁFICAS DEPTO:
 #Gráfica de muertes diarias:
 plt.figure(7)
