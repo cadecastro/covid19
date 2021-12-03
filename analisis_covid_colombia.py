@@ -8,6 +8,8 @@ Autor: Carlos Armando De Castro (cadecastro.com)
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 #Input de región de interés:
 depto=str(input('Departamento o distrito a analizar (todo en mayúsculas):'))
 #Importar datos de Datos Abiertos Colombia:
