@@ -11,7 +11,7 @@ import numpy as np
 #Input de región de interés:
 depto=str(input('Departamento o distrito a analizar (todo en mayúsculas):'))
 #Importar datos de Datos Abiertos Colombia:
-columnas=['Nombre departamento','Edad','Sexo','Estado','Fecha de inicio de síntomas','Fecha de muerte']
+columnas=['Nombre departamento','Edad','Sexo','Ubicación del caso','Estado','Fecha de inicio de síntomas','Fecha de muerte']
 covid=pd.read_csv('https://www.datos.gov.co/api/views/gt2j-8ykr/rows.csv',usecols=columnas)
 #Convertir fechas de muerte a formato adecuado:
 covid["Fecha de muerte"] = pd.to_datetime(covid["Fecha de muerte"],dayfirst=True)

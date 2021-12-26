@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Dec 25 18:39:14 2021
+ANÁLISIS CIFRAS COVID-19 BOGOTÁ
+Autor: Carlos Armando De Castro (cadecastro.com)
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+datos=pd.read_csv('https://datosabiertos.bogota.gov.co/dataset/44eacdb7-a535-45ed-be03-16dbbea6f6da/resource/b64ba3c4-9e41-41b8-b3fd-2da21d627558/download/osb_enftransm-covid-19_25122021.csv',sep=';')
+datos['FECHA_DE_INICIO_DE_SINTOMAS']=pd.to_datetime(datos['FECHA_DE_INICIO_DE_SINTOMAS'],yearfirst=True)
+FIS_bog=datos['FECHA_DE_INICIO_DE_SINTOMAS'].value_counts()
+localidad=str(input('Localidad: '))
+datos_loc=datos[datos['LOCALIDAD_ASIS']==localidad]
+FIS_loc=datos_loc['FECHA_DE_INICIO_DE_SINTOMAS'].value_counts()
+FIS_bog=FIS_bog.sort_index()
+FIS_loc=FIS_loc.sort_index()
+estados=datos.groupby('ESTADO').count()
+activos=estados.drop(['Recuperado','Fallecido','Fallecido (No aplica No causa Directa)'])
+activos=activos.sort_values('CASO',ascending=False)
+localidades=pd.pivot_table(datos,values='CASO',index='FECHA_DE_INICIO_DE_SINTOMAS',columns='LOCALIDAD_ASIS',aggfunc=np.count_nonzero)
+plt.figure(1)
+plt.bar(FIS_bog.index,FIS_bog,color='blue')
+plt.plot(FIS_bog.index,FIS_bog.rolling(window=7).mean(),'r')
+plt.title('Casos por fecha inicio síntomas COVID-19 en Bogotá',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Casos diarios')
+plt.legend(['Casos diarios','Media móvil semanal'])
+plt.ylim(0,None)
+plt.figure(2)
+plt.bar(FIS_loc.index,FIS_loc,color='blue')
+plt.plot(FIS_loc.index,FIS_loc.rolling(window=7).mean(),'r')
+plt.title('Casos por fecha inicio síntomas COVID-19 en '+localidad,loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Casos diarios')
+plt.legend(['Casos diarios','Media móvil semanal'])
+plt.ylim(0,None)
+plt.figure(3)
+plt.bar(activos.index,activos['CASO'],color='blue')
+plt.title('Casos activos COVID-19 Bogotá',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.figure(4)
+plt.plot(localidades)
+plt.legend(localidades.columns)
+plt.title('Casos COVID-19 localidades Bogotá',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Inicios de síntomas')
+plt.ylim(0,None)
+plt.grid(True,'both','both')
+plt.figure(5)
+plt.bar(localidades.index,localidades['Sin dato'],color='blue')
+plt.plot(localidades.index,localidades['Sin dato'].rolling(window=7).mean(),'r')
+plt.title('Casos COVID-19 localidad Sin dato',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Inicios de síntomas')
+plt.ylim(0,None)
+plt.grid(True,'both','both')
