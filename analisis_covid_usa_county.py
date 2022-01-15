@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jan 14 10:52:33 2022
-ANÁLISIS CIFRAS MUERTES COVID-19 EN ESTADOS UNIDOS - CONDADO
-Autor: Carlos Armando De Castro (cadecastro.com)
+COVID-19 DEATHS IN US - COUNTY
+Author: Carlos Armando De Castro (cadecastro.com)
 """
 import numpy as np
 import pandas as pd
@@ -25,19 +25,19 @@ muertes_us.dropna()
 muertes['Per capita']=muertes[0]/muertes['Population']*100
 muertes=muertes[np.isfinite(muertes).all(1)]
 muertes=muertes.sort_values(by=['Per capita'],ascending=False)
-condado=str(input('Condado a graficar muertes diarias: '))
-print('Muertes por COVID-19 en '+condado+' : ',np.format_float_positional(muertes[0][condado],precision=0))
-print('Población en '+condado+' : ',np.format_float_positional(muertes['Population'][condado],precision=0))
-print('Muertes per cápita en '+condado+' : ',np.format_float_positional(muertes['Per capita'][condado],precision=3),'%')
+condado=str(input('COUNTY TO ANALYSE: '))
+print('Deaths with COVID-19 at '+condado+' : ',np.format_float_positional(muertes[0][condado],precision=0))
+print('Population at '+condado+' : ',np.format_float_positional(muertes['Population'][condado],precision=0))
+print('Deaths per capita at '+condado+' : ',np.format_float_positional(muertes['Per capita'][condado],precision=3),'%')
 plt.figure(1,figsize=(12,6))
 plt.bar(muertes_us.index,muertes_us[condado],color='blue')
 plt.plot(muertes_us.index,muertes_us[condado].rolling(window=7).mean(),'r')
-plt.title('Muertes diarias COVID-19 en '+condado,loc='left')
+plt.title('Daily deaths with COVID-19 at '+condado,loc='left')
 plt.title('cadecastro.com',loc='right')
-plt.ylabel('Muertes diarias')
-plt.legend(['Muertes diarias','Media móvil semanal'])
+plt.ylabel('Daily deaths')
+plt.legend(['Daily deaths','Rolling average 7 days'])
 plt.ylim(0,None)
 plt.figure(2,figsize=(12,6))
 muertes['Per capita'][:len(muertes['Per capita'])-3200].plot.bar(color='blue')
-plt.title('Muertes per cápita por condado')
-plt.ylabel('Muertes per cápita (%)')
+plt.title('Deaths per capita by county')
+plt.ylabel('Deaths/Population (%)')
