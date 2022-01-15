@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec 22 20:10:03 2021
-ANÁLISIS CIFRAS MUERTES COVID-19 EN ESTADOS UNIDOS
-Autor: Carlos Armando De Castro (cadecastro.com)
+COVID-19 DEATHS IN US STATES
+Author: Carlos Armando De Castro (cadecastro.com)
 """
 import numpy as np
 import pandas as pd
@@ -25,21 +25,22 @@ muertes_us.dropna()
 muertes['Per capita']=muertes[0]/muertes['Population']*100
 muertes=muertes[np.isfinite(muertes).all(1)]
 muertes=muertes.sort_values(by=['Per capita'],ascending=False)
-estado=str(input('Estado a analizar: '))
-print('Muertes por COVID-19 en '+estado+' : ',np.format_float_positional(muertes[0][estado],precision=0))
-print('Población en '+estado+' : ',np.format_float_positional(muertes['Population'][estado],precision=0))
-print('Muertes per cápita en '+estado+' : ',np.format_float_positional(muertes['Per capita'][estado],precision=3),'%')
+estado=str(input('STATE TO ANALYSE: '))
+print('Deaths with COVID-19 at '+estado+' : ',np.format_float_positional(muertes[0][estado],precision=0))
+print('Population at '+estado+' : ',np.format_float_positional(muertes['Population'][estado],precision=0))
+print('Deaths per capita at '+estado+' : ',np.format_float_positional(muertes['Per capita'][estado],precision=3),'%')
 plt.figure(1,figsize=(12,6))
 #plt.bar(muertes_us.index,muertes_us[estado],color='blue')
 plt.plot(muertes_us.index,muertes_us[estado].rolling(window=7).mean(),'b')
-plt.title('Muertes diarias COVID-19 en '+estado,loc='left')
+plt.title('Daily deaths with COVID-19 at '+estado,loc='left')
 plt.title('cadecastro.com',loc='right')
-plt.ylabel('Muertes diarias')
-plt.legend(['Media móvil 7 días','Muertes diarias'])
+plt.ylabel('Daily deaths')
+plt.legend(['Rolling average 7 days','Daily deaths'])
 plt.ylim(0,None)
 plt.xlim(muertes_us.index[0],muertes_us.index[len(muertes_us[estado])-1])
 plt.grid(True,'both','both')
 plt.figure(2,figsize=(12,6))
-muertes['Per capita'][:len(muertes['Per capita'])-39].plot.bar(color='blue')
-plt.ylabel('Muertes per cápita (%)')
-plt.title('Muertes per cápita por estado')
+muertes['Per capita'][:len(muertes['Per capita'])-46].plot.bar(color='blue')
+plt.ylabel('Deaths/Population (%)')
+plt.title('Reported COVID-19 deaths per capita',loc='left')
+plt.title('cadecastro.com',loc='right')
