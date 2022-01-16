@@ -13,12 +13,30 @@ depto=str(input('Departamento o distrito a analizar (todo en mayúsculas):'))
 #Importar datos de Datos Abiertos Colombia:
 columnas=['Nombre departamento','Edad','Sexo','Ubicación del caso','Estado','Fecha de inicio de síntomas','Fecha de muerte']
 covid=pd.read_csv('https://www.datos.gov.co/api/views/gt2j-8ykr/rows.csv',usecols=columnas)
+poblacion=pd.read_csv('https://raw.githubusercontent.com/cadecastro/analisis_datos/main/poblacion_deptos_2021.csv')
+poblacion=poblacion.set_index('DEPARTAMENTO')
+poblacion=poblacion.rename(columns={'POBLACION 2021':'Población'})
 #Convertir fechas de muerte a formato adecuado:
 covid["Fecha de muerte"] = pd.to_datetime(covid["Fecha de muerte"],dayfirst=True)
 covid["Fecha de inicio de síntomas"] = pd.to_datetime(covid["Fecha de inicio de síntomas"],dayfirst=True)
-#COLOMBIA:
+#Corrección datos:
+covid['Nombre departamento']=covid['Nombre departamento'].replace(to_replace=['Tolima','Caldas','STA MARTA D.E.'],value=['TOLIMA','CALDAS','SANTA MARTA'])
+covid['Sexo']=covid['Sexo'].replace(to_replace=['m'],value=['M'])
 #Casos que fallecieron por COVID-19:
 muertes=covid[covid['Estado']=='Fallecido']
+#RESUMEN REGIONES:
+casos_regiones=pd.pivot_table(covid,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero)
+casos_regiones=casos_regiones.rename(columns={'Edad':'Casos'})
+muertes_regiones=pd.pivot_table(muertes,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero)
+muertes_regiones=muertes_regiones.rename(columns={'Edad':'Muertes'})
+regiones=pd.merge(casos_regiones,muertes_regiones,left_index=True,right_index=True)
+regiones=pd.merge(regiones,poblacion,left_index=True,right_index=True)
+del casos_regiones,muertes_regiones,poblacion
+cfr_reg=regiones['Muertes']/regiones['Casos']*100
+cfr_reg=cfr_reg.sort_values(ascending=False)
+let_reg=regiones['Muertes']/regiones['Población']*100
+let_reg=let_reg.sort_values(ascending=False)
+#COLOMBIA:
 #Conteo de muertes por fecha de ocurrencia:
 fecha_muerte=muertes['Fecha de muerte'].value_counts()
 fecha_muerte=fecha_muerte.sort_index()
@@ -56,12 +74,21 @@ CFR_dep=edades_muerte_dep['Fecha de muerte'].divide(edades_casos_dep['Edad'])
 #Estadísticas casos por edad:
 stat_edad_casos_dep=casos_dep['Edad'].describe()
 stat_edad_muertes_dep=muertes_dep['Edad'].describe()
-#Salida estadísticas casos por edad:
+#Salida resultados:
+print('POBLACIÓN EN COLOMBIA: ',np.format_float_positional(regiones['Población'].sum(),precision=0))
+print('CASOS EN COLOMBIA: ',np.format_float_positional(regiones['Casos'].sum(),precision=0))
+print('MUERTES EN COLOMBIA: ',np.format_float_positional(regiones['Muertes'].sum(),precision=0))
+print('MUERTES PER CÁPITA EN COLOMBIA =',np.format_float_positional(regiones['Muertes'].sum()/regiones['Población'].sum()*100,precision=3),'%')
+print('LETALIDAD POR CASO EN COLOMBIA =',np.format_float_positional(regiones['Muertes'].sum()/regiones['Casos'].sum()*100,precision=3),'%')
 print('Estadísticas de edad de los casos en COLOMBIA:')
 print(stat_edad_casos)
 print('Estadísticas de edad de las muertes en COLOMBIA:')
 print(stat_edad_muertes)
-print('Tasa de letalidad por caso =',np.format_float_positional(stat_edad_muertes['count']/stat_edad_casos['count']*100,precision=2),'%')
+print('POBLACIÓN EN '+depto+': ',np.format_float_positional(regiones['Población'][depto].sum(),precision=0))
+print('CASOS EN '+depto+': ',np.format_float_positional(regiones['Casos'][depto].sum(),precision=0))
+print('MUERTES EN '+depto+': ',np.format_float_positional(regiones['Muertes'][depto].sum(),precision=0))
+print('MUERTES PER CÁPITA EN '+depto+' =',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Población'][depto].sum()*100,precision=3),'%')
+print('LETALIDAD POR CASO EN '+depto+' =',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Casos'][depto].sum()*100,precision=3),'%')
 print('Estadísticas de edad de los casos en ',depto)
 print(stat_edad_casos_dep)
 print('Estadísticas de edad de las muertes en ',depto)
@@ -184,8 +211,20 @@ plt.ylim(0,0.4)
 plt.figure(9)
 plt.pie(sexo_muerte['Fecha de muerte'],labels=sexo_muerte.index,colors=['red','blue'])
 plt.title('Muertes COVID-19 Colombia por género',loc='left')
+#Fig 10:
+plt.figure(10,figsize=(12,6))
+let_reg.plot.bar(color='blue')
+plt.title('Muertes COVID-19 per cápita',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Muertes/Habitantes (%)')
+#Fig 11:
+plt.figure(11,figsize=(12,6))
+cfr_reg.plot.bar(color='blue')
+plt.title('Tasa de letalidad por caso',loc='left')
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Muertes/Casos (%)')
 #Histograma edades:
-plt.figure(10,figsize=(12,5))
+plt.figure(12,figsize=(12,5))
 plt.subplot(121)
 covid['Edad'].plot.hist(color='blue')
 plt.title('Histograma casos COVID-19',loc='left')
