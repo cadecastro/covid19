@@ -88,6 +88,8 @@ vac_boost=pd.pivot_table(data=vac2021,values='total_boosters_per_hundred',index=
 full2021=pd.pivot_table(data=vac2021,values='people_fully_vaccinated_per_hundred',
                         index='month',columns='location',aggfunc=np.nanmax)
 #Vacunación mensual por país:
+doses=pd.pivot_table(data=vacunas,values='people_vaccinated_per_hundred',
+                        index='Period',columns='location',aggfunc=np.nanmax).fillna(0)
 full=pd.pivot_table(data=vacunas,values='people_fully_vaccinated_per_hundred',
                         index='Period',columns='location',aggfunc=np.nanmax).fillna(0)
 boost=pd.pivot_table(data=vacunas,values='total_boosters_per_hundred',
@@ -159,8 +161,8 @@ let_mensual=pd.DataFrame(muertes_mensuales['Mundo']/casos_mensuales['Mundo']*100
 #GRÁFICAS:
 plt.figure(1,figsize=(12,11))
 plt.subplot(211)
-plt.bar(casos_mensuales.index[:len(casos_mensuales.index)-1],casos_mensuales['Mundo'][:len(casos_mensuales.index)-1],color='blue')
-plt.plot(casos_mensuales.index[:len(casos_mensuales.index)-1],casos_mensuales['Mundo'][:len(casos_mensuales.index)-1].rolling(window =2).mean(),'r')
+plt.bar(casos_mensuales.index,casos_mensuales['Mundo'],color='blue')
+plt.plot(casos_mensuales.index,casos_mensuales['Mundo'].rolling(window =2).mean(),'r')
 plt.title('Monthly COVID-19 report Worldwide')
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Monthly Cases')
@@ -169,8 +171,8 @@ plt.ylim(0,None)
 plt.xticks(rotation=90)
 plt.legend(['Rolling average 2 months','Monthly data'])
 plt.subplot(212)
-plt.bar(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales['Mundo'][:len(muertes_mensuales.index)-1],color='blue')
-plt.plot(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales['Mundo'][:len(muertes_mensuales.index)-1].rolling(window =2).mean(),'r')
+plt.bar(muertes_mensuales.index,muertes_mensuales['Mundo'],color='blue')
+plt.plot(muertes_mensuales.index,muertes_mensuales['Mundo'].rolling(window =2).mean(),'r')
 plt.ylabel('Monthly Deaths')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
@@ -178,8 +180,8 @@ plt.xticks(rotation=90)
 plt.legend(['Rolling average 2 months','Monthly data'])
 
 plt.figure(2,figsize=(12,6))
-plt.bar(let_mensual.index[:len(let_mensual.index)-1],let_mensual['CFR'][:len(let_mensual.index)-1],color='blue')
-plt.plot(let_mensual.index[:len(let_mensual.index)-1],let_mensual['CFR'][:len(let_mensual.index)-1].rolling(window =2).mean(),'r')
+plt.bar(let_mensual.index,let_mensual['CFR'],color='blue')
+plt.plot(let_mensual.index,let_mensual['CFR'].rolling(window =2).mean(),'r')
 plt.title('Monthly COVID-19 Case Fatality Rate - World')
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Deaths/Cases Monthly (%)')
@@ -277,174 +279,6 @@ plt.xticks(rotation=90)
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 
-#Datos de cambio de movilidad global:
-mov_global=pd.read_csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',usecols=['date','country_region','residential_percent_change_from_baseline'])
-mov_global['date']=pd.to_datetime(mov_global['date'],yearfirst=True)
-mov_medio=pd.pivot_table(data=mov_global,values='residential_percent_change_from_baseline',index='country_region',aggfunc=np.mean)
-
-#Cambio movilidad residencial por regiones en países seleccionados:
-mov_latam=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Colombia'],mov_medio['residential_percent_change_from_baseline']['Mexico'],
-                             mov_medio['residential_percent_change_from_baseline']['Argentina'],mov_medio['residential_percent_change_from_baseline']['Peru'],
-                             mov_medio['residential_percent_change_from_baseline']['Ecuador'],mov_medio['residential_percent_change_from_baseline']['Panama'],
-                             mov_medio['residential_percent_change_from_baseline']['Brazil'],mov_medio['residential_percent_change_from_baseline']['Chile'],
-                             mov_medio['residential_percent_change_from_baseline']['Uruguay'],mov_medio['residential_percent_change_from_baseline']['Paraguay']],
-                       index=['Colombia','México','Argentina','Perú','Ecuador','Panamá','Brasil','Chile','Uruguay','Paraguay'])
-mov_latam=mov_latam.rename(columns={0:'Residential mobility average change'})
-mov_latam=mov_latam.sort_values(by='Residential mobility average change',ascending=False)
-
-mov_eur=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Poland'],mov_medio['residential_percent_change_from_baseline']['Italy'],
-                             mov_medio['residential_percent_change_from_baseline']['Portugal'],mov_medio['residential_percent_change_from_baseline']['France'],
-                             mov_medio['residential_percent_change_from_baseline']['Greece'],mov_medio['residential_percent_change_from_baseline']['Spain'],
-                             mov_medio['residential_percent_change_from_baseline']['Austria'],mov_medio['residential_percent_change_from_baseline']['Germany'],
-                             mov_medio['residential_percent_change_from_baseline']['Denmark'],mov_medio['residential_percent_change_from_baseline']['Sweden'],
-                           mov_medio['residential_percent_change_from_baseline']['Netherlands'],mov_medio['residential_percent_change_from_baseline']['Belgium'],
-                           mov_medio['residential_percent_change_from_baseline']['Russia'],mov_medio['residential_percent_change_from_baseline']['Finland']],
-                       index=['Poland','Italy','Portugal','France','Greece','Spain','Austria','Germany','Denmark','Sweden','Netherlands','Belgium','Russia','Finland'])
-mov_eur=mov_eur.rename(columns={0:'Residential mobility average change'})
-mov_eur=mov_eur.sort_values(by='Residential mobility average change',ascending=False)
-
-mov_ang=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['United States'],mov_medio['residential_percent_change_from_baseline']['Australia'],
-                             mov_medio['residential_percent_change_from_baseline']['United Kingdom'],mov_medio['residential_percent_change_from_baseline']['Ireland'],
-                             mov_medio['residential_percent_change_from_baseline']['Canada'],mov_medio['residential_percent_change_from_baseline']['New Zealand']],
-                       index=['United States','Australia','United Kingdom','Ireland','Canada','New Zealand'])
-mov_ang=mov_ang.rename(columns={0:'Residential mobility average change'})
-mov_ang=mov_ang.sort_values(by='Residential mobility average change',ascending=False)
-
-mov_asia=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Japan'],mov_medio['residential_percent_change_from_baseline']['Vietnam'],
-                             mov_medio['residential_percent_change_from_baseline']['India'],mov_medio['residential_percent_change_from_baseline']['Philippines'],
-                             mov_medio['residential_percent_change_from_baseline']['Thailand'],mov_medio['residential_percent_change_from_baseline']['South Korea'],
-                            mov_medio['residential_percent_change_from_baseline']['Mongolia'],mov_medio['residential_percent_change_from_baseline']['Indonesia']],
-                       index=['Japan','Vietnam','India','Philippines','Thailand','South Korea','Mongolia','Indonesia'])
-mov_asia=mov_asia.rename(columns={0:'Residential mobility average change'})
-mov_asia=mov_asia.sort_values(by='Residential mobility average change',ascending=False)
-
-mov_med=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Israel'],mov_medio['residential_percent_change_from_baseline']['Turkey'],
-                             mov_medio['residential_percent_change_from_baseline']['Jordan'],mov_medio['residential_percent_change_from_baseline']['Saudi Arabia'],
-                             mov_medio['residential_percent_change_from_baseline']['Iraq'],
-                            mov_medio['residential_percent_change_from_baseline']['Lebanon'],mov_medio['residential_percent_change_from_baseline']['Egypt'],
-                           mov_medio['residential_percent_change_from_baseline']['Libya'],mov_medio['residential_percent_change_from_baseline']['Pakistan']],
-                       index=['Israel','Turkey','Jordan','Saudi Arabia','Iraq','Lebanon','Egypt','Libya','Pakistan'])
-mov_med=mov_med.rename(columns={0:'Residential mobility average change'})
-mov_med=mov_med.sort_values(by='Residential mobility average change',ascending=False)
-
-mov_africa=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Nigeria'],mov_medio['residential_percent_change_from_baseline']['South Africa'],
-                             mov_medio['residential_percent_change_from_baseline']['Kenya'],
-                             mov_medio['residential_percent_change_from_baseline']['Mozambique'],mov_medio['residential_percent_change_from_baseline']['Namibia'],
-                              mov_medio['residential_percent_change_from_baseline']['Rwanda']],
-                       index=['Nigeria','South Africa','Kenya','Mozambique','Namibia','Rwanda'])
-mov_africa=mov_africa.rename(columns={0:'Residential mobility average change'})
-mov_africa=mov_africa.sort_values(by='Residential mobility average change',ascending=False)
-
-#Movilidad residencial mundial:
-mov_mund=mov_latam.append([mov_eur,mov_ang,mov_asia,
-                                           mov_med,mov_africa]).sort_values(by='Residential mobility average change',ascending=False)
-mov_mund=mov_mund.drop_duplicates()
-
-plt.figure(11,figsize=(13,6))
-plt.bar(mov_mund.index,mov_mund['Residential mobility average change'],color='blue')
-plt.title('Residential mobility average change since 2020',size=14)
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Change in residential mobility (%)')
-plt.xlabel('Data source: https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',size=8)
-plt.xticks(rotation=90)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-
-comparativo_latam=pd.merge(left=comparativo_latam,right=mov_latam,left_index=True,right_index=True)
-comparativo_eur=pd.merge(left=comparativo_eur,right=mov_eur,left_index=True,right_index=True)
-comparativo_ang=pd.merge(left=comparativo_ang,right=mov_ang,left_index=True,right_index=True)
-comparativo_asia=pd.merge(left=comparativo_asia,right=mov_asia,left_index=True,right_index=True)
-comparativo_med=pd.merge(left=comparativo_med,right=mov_med,left_index=True,right_index=True)
-comparativo_africa=pd.merge(left=comparativo_africa,right=mov_africa,left_index=True,right_index=True)
-
-comparativo_mund=pd.merge(left=comparativo_mund,right=mov_mund,left_index=True,right_index=True)
-comparativo_mund=comparativo_mund.drop_duplicates()
-
-x=comparativo_latam['Residential mobility average change']
-y=comparativo_latam['Deaths per capita']
-correlation_matrix = np.corrcoef(x, y)
-correlation_xy = correlation_matrix[0,1]
-R2 = correlation_xy**2
-R2=str(np.format_float_positional(R2,precision=3))
-d=np.polyfit(x,y,1)
-f= np.poly1d(d)
-y1=f(x)
-fig, ax = plt.subplots(figsize=(12,6))
-plt.plot(x,y,'bo')
-plt.plot(x,y1,'r')
-plt.title('LATIN AMERICA Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Deaths/Population')
-plt.xlabel('Residential mobility average change (%)',size=10)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-for index in range(len(x)):
-  ax.text(x[index], y[index], comparativo_latam.index[index], size=10)
-
-x=comparativo_eur['Residential mobility average change']
-y=comparativo_eur['Deaths per capita']
-correlation_matrix = np.corrcoef(x, y)
-correlation_xy = correlation_matrix[0,1]
-R2 = correlation_xy**2
-R2=str(np.format_float_positional(R2,precision=3))
-d=np.polyfit(x,y,1)
-f= np.poly1d(d)
-y1=f(x)
-fig, ax = plt.subplots(figsize=(12,6))
-plt.plot(x,y,'bo')
-plt.plot(x,y1,'r')
-plt.title('EUROPE Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Deaths/Population')
-plt.xlabel('Residential mobility average change (%)',size=10)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-for index in range(len(x)):
-  ax.text(x[index], y[index], comparativo_eur.index[index], size=10)
-
-x=comparativo_ang['Residential mobility average change']
-y=comparativo_ang['Deaths per capita']
-correlation_matrix = np.corrcoef(x, y)
-correlation_xy = correlation_matrix[0,1]
-R2 = correlation_xy**2
-R2=str(np.format_float_positional(R2,precision=3))
-d=np.polyfit(x,y,1)
-f= np.poly1d(d)
-y1=f(x)
-fig, ax = plt.subplots(figsize=(12,6))
-plt.plot(x,y,'bo')
-plt.plot(x,y1,'r')
-plt.title('ANGLO Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Deaths/Population')
-plt.xlabel('Residential mobility average change (%)',size=10)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-for index in range(len(x)):
-  ax.text(x[index], y[index], comparativo_ang.index[index], size=10)
-
-
-x=comparativo_mund['Residential mobility average change']
-y=comparativo_mund['Deaths per capita']
-correlation_matrix = np.corrcoef(x, y)
-correlation_xy = correlation_matrix[0,1]
-R2 = correlation_xy**2
-R2=str(np.format_float_positional(R2,precision=3))
-d=np.polyfit(x,y,1)
-f= np.poly1d(d)
-y1=f(x)
-fig, ax = plt.subplots(figsize=(12,6))
-plt.plot(x,y,'bo')
-plt.plot(x,y1,'r')
-plt.title('Global Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Deaths/Population')
-plt.xlabel('Residential mobility average change (%)',size=10)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-for index in range(len(x)):
-  ax.text(x[index], y[index], comparativo_mund.index[index], size=10)
-
 #Muertes totales por país año 2021:
 m2021=muertes_diarias.groupby(by='Year').sum()
 m2021=m2021.transpose()
@@ -536,96 +370,6 @@ plt.grid(True,'both','both')
 plt.ylim(0,None)
 for index in range(len(x)):
   ax.text(x[index], y[index], comp2021.index[index], size=11)
-
-#Muertes anuales:
-m_anuales=muertes_diarias.groupby(by='Year').sum()
-print(m_anuales)
-
-pais=str('Israel')
-m_anuales[pais].plot.bar(figsize=(8,4),color='blue')
-plt.title('COVID-19 Deaths in '+pais+' per year')
-plt.xlabel('cadecastro.com')
-
-pais=str('Colombia')
-
-X=pd.DataFrame(muertes_mensuales[pais]).rename(columns={pais:'Monthly Deaths'})
-Y=pd.DataFrame(full[pais]).rename(columns={pais:'Fully Vaxxed'})
-mv=X.join(Y).fillna(0)
-#print(mv)
-
-#Salida resultados:
-print('Confirmed cases at ',pais,'= ',np.format_float_positional(casos_diarias[pais].sum(),precision=0))
-print('Reported deaths at ',pais,'= ',np.format_float_positional(muertes_diarias[pais].sum(),precision=0))
-print('Case Fatality Rate at ',pais,'= ',np.format_float_positional(muertes_diarias[pais].sum()/casos_diarias[pais].sum()*100,precision=2),'%')
-
-plt.figure(18,figsize=(12,6))
-plt.subplot(211)
-#plt.bar(casos_diarias.index,casos_diarias[pais],color='blue')
-plt.plot(casos_diarias.index,casos_diarias[pais].rolling(window =7).mean(),'b')
-plt.title('Daily COVID-19 report at '+pais)
-plt.title('cadecastro.com',loc='right')
-plt.ylabel('Daily Cases')
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-plt.xlim(casos_diarias.index[0],casos_diarias.index[len(casos_diarias.index)-1])
-plt.legend(['Rolling average 7 days','Daily data'])
-plt.subplot(212)
-#plt.bar(muertes_diarias.index,muertes_diarias[pais],color='blue')
-plt.plot(muertes_diarias.index,muertes_diarias[pais].rolling(window =7).mean(),'r')
-plt.ylabel('Daily Deaths')
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-plt.xlim(muertes_diarias.index[0],muertes_diarias.index[len(muertes_diarias.index)-1])
-plt.legend(['Rolling average 7 days','Daily data'])
-
-plt.figure(19,figsize=(12,12))
-plt.subplot(211)
-plt.bar(mv.index[:len(mv['Fully Vaxxed'])-1],mv['Fully Vaxxed'][:len(mv['Fully Vaxxed'])-1],color='blue')
-plt.title('Population fully vaccinated by month '+pais,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Population fully vaccinated (%)')
-plt.xticks(rotation=90,size=8)
-plt.grid()
-plt.subplot(212)
-plt.bar(mv.index[:len(mv['Fully Vaxxed'])-1],mv['Monthly Deaths'][:len(mv['Fully Vaxxed'])-1],color='red')
-plt.title('COVID-19 Deaths by month '+pais,size=12,loc='left')
-plt.title('cadecastro.com',size=11,loc='right')
-plt.ylabel('COVID-19 Deaths')
-plt.xticks(rotation=90,size=8)
-plt.grid()
-
-let_pais=pd.DataFrame(muertes_mensuales[pais]/casos_mensuales[pais]*100).rename(columns={pais:'CFR'})
-
-plt.figure(20,figsize=(12,6))
-plt.bar(let_pais.index[:len(let_pais.index)-1],let_pais['CFR'][:len(let_pais.index)-1],color='blue')
-plt.plot(let_pais.index[:len(let_pais.index)-1],let_pais['CFR'][:len(let_pais.index)-1].rolling(window =2).mean(),'r')
-plt.title('Monthly COVID-19 Case Fatality Rate - '+pais)
-plt.title('cadecastro.com',loc='right')
-plt.ylabel('Deaths/Cases Monthly (%)')
-plt.ylim(0,None)
-plt.xticks(rotation=90)
-plt.grid(True,'both','both')
-
-x=mv['Fully Vaxxed'][11:len(mv['Fully Vaxxed'])-1]
-y=mv['Monthly Deaths'][11:len(mv['Monthly Deaths'])-1]
-correlation_matrix = np.corrcoef(x, y)
-correlation_xy = correlation_matrix[0,1]
-R2 = correlation_xy**2
-R2=str(np.format_float_positional(R2,precision=3))
-d=np.polyfit(x,y,1)
-f= np.poly1d(d)
-y1=f(x)
-fig, ax = plt.subplots(figsize=(12,6))
-plt.plot(x,y,'bo')
-plt.plot(x,y1,'r')
-plt.title(pais+' COVID-19 Deaths vs. People Fully Vaccinated, Monthly - R²='+R2,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
-plt.ylabel('Monthly COVID-19 Deaths',size=12)
-plt.xlabel('People Fully Vaccinated at end of month (%)',size=12)
-plt.grid(True,'both','both')
-plt.ylim(0,None)
-for j in range(len(x)):
-  ax.text(x[j], y[j], x.index[j], size=10)
 
 #Muertes diciembre 2021:
 mdic21=muertes2021[muertes2021.index==12]
@@ -789,6 +533,8 @@ mpcjan22_mund=mpcjan22_latam.append([mpcjan22_eur,mpcjan22_ang,mpcjan22_asia,
 
 #DataFrame con vacunas totales en 2021:
 compjan22=pd.merge(left=mpcjan22_mund,right=vac_full,left_index=True,right_index=True)
+#DataFrame con refuerzos totales en 2021:
+compboostjan22=pd.merge(left=mpcjan22_mund,right=vac_boost,left_index=True,right_index=True)
 
 
 x=compjan22['people_fully_vaccinated_per_hundred']
@@ -811,10 +557,6 @@ plt.grid(True,'both','both')
 plt.ylim(0,None)
 for index in range(len(x)):
   ax.text(x[index], y[index], x.index[index], size=11)
-
-#DataFrame con refuerzos totales en 2021:
-compboostjan22=pd.merge(left=mpcjan22_mund,right=vac_boost,left_index=True,right_index=True)
-
 
 x=compboostjan22['total_boosters_per_hundred']
 y=compboostjan22['Deaths per capita']
@@ -862,3 +604,502 @@ plt.ylim(0,None)
 for index in range(len(x)):
   ax.text(x[index], y[index], x.index[index], size=11)
 
+#Vacunación al final de Enero 2022:
+full_jan22=full[full.index=='2022-01'].transpose().rename(columns={'2022-01':'Fully vaccinated Jan-22'})
+boost_jan22=boost[boost.index=='2022-01'].transpose().rename(columns={'2022-01':'Boosted Jan-22'})
+
+#DataFrame con dosis totales en Enero 2022:
+comp_vac_jan22=pd.merge(left=mpcjan22_mund,right=full_jan22,left_index=True,right_index=True)
+comp_vac_jan22=pd.merge(left=comp_vac_jan22,right=boost_jan22,left_index=True,right_index=True)
+
+x=comp_vac_jan22['Fully vaccinated Jan-22']
+y=comp_vac_jan22['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Deaths per capita Jan-2022 vs. Fully vaxxed at end of Jan-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Population in Jan-2022',size=12)
+plt.xlabel('Fully Vacc./Population end of Jan-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+x=comp_vac_jan22['Boosted Jan-22']
+y=comp_vac_jan22['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Deaths per capita Jan-2022 vs. Boosters/Population at end of Jan-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Population in Jan-2022',size=12)
+plt.xlabel('Boosters/Population end of Jan-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+#Muertes en cada país enero 2022:
+muertes_ene22=pd.DataFrame(muertes_mensuales[muertes_mensuales.index=='2022-01'].transpose().rename(columns={'2022-01':'Deaths'}))
+casos_ene22=pd.DataFrame(casos_mensuales[casos_mensuales.index=='2022-01'].transpose().rename(columns={'2022-01':'Cases'}))
+datos_ene22=pd.merge(left=casos_ene22,right=muertes_ene22,left_index=True,right_index=True)
+datos_ene22['CFR']=datos_ene22['Deaths']/datos_ene22['Cases']*100
+datos_ene22=datos_ene22.sort_values(by='CFR',ascending=False)
+
+comp_cfr_jan22=pd.merge(left=datos_ene22['CFR'],right=full_jan22,left_index=True,right_index=True)
+comp_cfr_jan22=pd.merge(left=comp_cfr_jan22,right=boost_jan22,left_index=True,right_index=True)
+print(comp_cfr_jan22)
+
+x=comp_cfr_jan22['Fully vaccinated Jan-22']
+y=comp_cfr_jan22['CFR']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('CFR Jan-2022 vs. Fully Vaxxed/Population at end of Jan-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Cases in Jan-2022',size=12)
+plt.xlabel('Fully Vaxxed/Population end of Jan-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+x=comp_cfr_jan22['Boosted Jan-22']
+y=comp_cfr_jan22['CFR']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('CFR Jan-2022 vs. Boosted/Population at end of Jan-2022 Jan-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Cases in Jan-2022',size=12)
+plt.xlabel('Boosted/Population end of Jan-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+#Vacunación en febrero 2022:
+doses_feb22=doses[doses.index=='2022-02'].transpose().rename(columns={'2022-02':'Doses Feb-22'})
+full_feb22=full[full.index=='2022-02'].transpose().rename(columns={'2022-02':'Fully vaccinated Feb-22'})
+boost_feb22=boost[boost.index=='2022-02'].transpose().rename(columns={'2022-02':'Boosted Feb-22'})
+
+#Muertes febrero 2022:
+mfeb22=muertes_mensuales[muertes_mensuales.index=='2022-02'].fillna(0)
+
+#Latinoamérica:
+mpcfeb22_latam=pd.DataFrame(data=[mfeb22['Colombia']/pob2021['PopTotal']['Colombia'],mfeb22['Mexico']/pob2021['PopTotal']['Mexico'],
+                               mfeb22['Argentina']/pob2021['PopTotal']['Argentina'],mfeb22['Peru']/pob2021['PopTotal']['Peru'],
+                               mfeb22['Ecuador']/pob2021['PopTotal']['Ecuador'],mfeb22['Panama']/pob2021['PopTotal']['Panama'],
+                               mfeb22['Brazil']/pob2021['PopTotal']['Brazil'],mfeb22['Chile']/pob2021['PopTotal']['Chile'],
+                               mfeb22['Uruguay']/pob2021['PopTotal']['Uruguay'],mfeb22['Paraguay']/pob2021['PopTotal']['Paraguay']],
+                         index=['Colombia','Mexico','Argentina','Peru','Ecuador','Panama','Brazil','Chile','Uruguay','Paraguay'])
+mpcfeb22_latam=mpcfeb22_latam.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_latam=mpcfeb22_latam.sort_values(by='Deaths per capita',ascending=False)
+
+#Europa:
+mpcfeb22_eur=pd.DataFrame(data=[mfeb22['Portugal']/pob2021['PopTotal']['Portugal'],mfeb22['Germany']/pob2021['PopTotal']['Germany'],
+                               mfeb22['France']/pob2021['PopTotal']['France'],mfeb22['Italy']/pob2021['PopTotal']['Italy'],
+                               mfeb22['Austria']/pob2021['PopTotal']['Austria'],mfeb22['Poland']/pob2021['PopTotal']['Poland'],
+                               mfeb22['Sweden']/pob2021['PopTotal']['Sweden'],mfeb22['Spain']/pob2021['PopTotal']['Spain'],
+                               mfeb22['Greece']/pob2021['PopTotal']['Greece'],mfeb22['Denmark']/pob2021['PopTotal']['Denmark'],
+                               mfeb22['Netherlands']/pob2021['PopTotal']['Netherlands'],mfeb22['Belgium']/pob2021['PopTotal']['Belgium'],
+                               mfeb22['Russia']/pob2021['PopTotal']['Russian Federation'],mfeb22['Finland']/pob2021['PopTotal']['Finland']],
+                         index=['Portugal','Germany','France','Italy','Austria','Poland','Sweden','Spain','Greece','Denmark','Netherlands','Belgium','Russia','Finland'])
+mpcfeb22_eur=mpcfeb22_eur.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_eur=mpcfeb22_eur.sort_values(by='Deaths per capita',ascending=False)
+
+#Países anglos:
+mpcfeb22_ang=pd.DataFrame(data=[mfeb22['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mfeb22['US']/pob2021['PopTotal']['United States of America'],
+                               mfeb22['Ireland']/pob2021['PopTotal']['Ireland'],mfeb22['Australia']/pob2021['PopTotal']['Australia'],
+                               mfeb22['New Zealand']/pob2021['PopTotal']['New Zealand'],mfeb22['Canada']/pob2021['PopTotal']['Canada']],
+                         index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
+mpcfeb22_ang=mpcfeb22_ang.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_ang=mpcfeb22_ang.sort_values(by='Deaths per capita',ascending=False)
+
+#Países asiáticos:
+mpcfeb22_asia=pd.DataFrame(data=[mfeb22['Japan']/pob2021['PopTotal']['Japan'],mfeb22['Vietnam']/pob2021['PopTotal']['Viet Nam'],
+                               mfeb22['India']/pob2021['PopTotal']['India'],mfeb22['Philippines']/pob2021['PopTotal']['Philippines'],
+                               mfeb22['Thailand']/pob2021['PopTotal']['Thailand'],mfeb22['Korea, South']/pob2021['PopTotal']['Republic of Korea'],
+                               mfeb22['Mongolia']/pob2021['PopTotal']['Mongolia'],mfeb22['Indonesia']/pob2021['PopTotal']['Indonesia']],
+                         index=['Japan','Vietnam','India','Philippines','Thailand','South Korea','Mongolia','Indonesia'])
+mpcfeb22_asia=mpcfeb22_asia.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_asia=mpcfeb22_asia.sort_values(by='Deaths per capita',ascending=False)
+
+#Medio oriente:
+mpcfeb22_med=pd.DataFrame(data=[mfeb22['Israel']/pob2021['PopTotal']['Israel'],mfeb22['Turkey']/pob2021['PopTotal']['Turkey'],
+                               mfeb22['Jordan']/pob2021['PopTotal']['Jordan'],mfeb22['Saudi Arabia']/pob2021['PopTotal']['Saudi Arabia'],
+                               mfeb22['Iran']/pob2021['PopTotal']['Iran (Islamic Republic of)'],mfeb22['Iraq']/pob2021['PopTotal']['Iraq'],
+                               mfeb22['Lebanon']/pob2021['PopTotal']['Lebanon'],mfeb22['Egypt']/pob2021['PopTotal']['Egypt'],
+                               mfeb22['Libya']/pob2021['PopTotal']['Libya'],mfeb22['Pakistan']/pob2021['PopTotal']['Pakistan']],
+                         index=['Israel','Turkey','Jordan','Saudi Arabia','Iran','Iraq','Lebanon','Egypt','Libya','Pakistan'])
+mpcfeb22_med=mpcfeb22_med.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_med=mpcfeb22_med.sort_values(by='Deaths per capita',ascending=False)
+
+#África:
+mpcfeb22_africa=pd.DataFrame(data=[mfeb22['Nigeria']/pob2021['PopTotal']['Nigeria'],mfeb22['South Africa']/pob2021['PopTotal']['South Africa'],
+                               mfeb22['Kenya']/pob2021['PopTotal']['Kenya'],mfeb22['Malawi']/pob2021['PopTotal']['Malawi'],
+                               mfeb22['Mozambique']/pob2021['PopTotal']['Mozambique'],mfeb22['Ethiopia']/pob2021['PopTotal']['Ethiopia'],
+                               mfeb22['Namibia']/pob2021['PopTotal']['Namibia'],mfeb22['Rwanda']/pob2021['PopTotal']['Rwanda']],
+                         index=['Nigeria','South Africa','Kenya','Malawi','Mozambique','Ethiopia','Namibia','Rwanda'])
+mpcfeb22_africa=mpcfeb22_africa.rename(columns={'2022-02':'Deaths per capita'})
+mpcfeb22_africa=mpcfeb22_africa.sort_values(by='Deaths per capita',ascending=False)
+
+#Mundial:
+mpcfeb22_mund=mpcfeb22_latam.append([mpcfeb22_eur,mpcfeb22_ang,mpcfeb22_asia,
+                                           mpcfeb22_med,mpcfeb22_africa]).sort_values(by='Deaths per capita',ascending=False)
+
+#DataFrame con dosis totales en Febrero 2022:
+comp_vac_feb22=pd.merge(left=mpcfeb22_mund,right=full_feb22,left_index=True,right_index=True)
+comp_vac_feb22=pd.merge(left=comp_vac_feb22,right=boost_feb22,left_index=True,right_index=True)
+comp_vac_feb22=pd.merge(left=comp_vac_feb22,right=doses_feb22,left_index=True,right_index=True)
+comp_vac_feb22=comp_vac_feb22.sort_values(by='Deaths per capita',ascending=False)
+print(comp_vac_feb22)
+
+x=comp_vac_feb22['Doses Feb-22']
+y=comp_vac_feb22['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Deaths per capita Feb-2022 vs. Doses per capita Feb-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Population in Feb-2022',size=12)
+plt.xlabel('Doses/Population Feb-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+x=comp_vac_feb22['Fully vaccinated Feb-22']
+y=comp_vac_feb22['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Deaths per capita Feb-2022 vs. People Fully Vaccinated Feb-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Population in Feb-2022',size=12)
+plt.xlabel('People Fully Vaccinated Feb-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+x=comp_vac_feb22['Boosted Feb-22']
+y=comp_vac_feb22['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(15,7))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Deaths per capita Feb-2022 vs. People Boosted Feb-2022 - R²='+R2,size=14,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('COVID-19 Deaths/Population in Feb-2022',size=12)
+plt.xlabel('Boosters/Population Feb-2022 (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], x.index[index], size=11)
+
+pais=str('Colombia')
+
+#Muertes anuales:
+m_anuales=muertes_diarias.groupby(by='Year').sum()
+#print(m_anuales)
+
+m_anuales[pais].plot.bar(figsize=(8,4),color='blue')
+plt.title('COVID-19 Deaths in '+pais+' per year')
+plt.xlabel('cadecastro.com')
+
+X=pd.DataFrame(muertes_mensuales[pais]).rename(columns={pais:'Monthly Deaths'})
+Y=pd.DataFrame(full[pais]).rename(columns={pais:'Fully Vaxxed'})
+mv=X.join(Y).fillna(0)
+#print(mv)
+
+#Salida resultados:
+print('Confirmed cases at ',pais,'= ',np.format_float_positional(casos_diarias[pais].sum(),precision=0))
+print('Reported deaths at ',pais,'= ',np.format_float_positional(muertes_diarias[pais].sum(),precision=0))
+print('Case Fatality Rate at ',pais,'= ',np.format_float_positional(muertes_diarias[pais].sum()/casos_diarias[pais].sum()*100,precision=2),'%')
+
+plt.figure(23,figsize=(12,6))
+plt.subplot(211)
+#plt.bar(casos_diarias.index,casos_diarias[pais],color='blue')
+plt.plot(casos_diarias.index,casos_diarias[pais].rolling(window =7).mean(),'b')
+plt.title('Daily COVID-19 report at '+pais)
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Daily Cases')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xlim(casos_diarias.index[0],casos_diarias.index[len(casos_diarias.index)-1])
+plt.legend(['Rolling average 7 days','Daily data'])
+plt.subplot(212)
+#plt.bar(muertes_diarias.index,muertes_diarias[pais],color='blue')
+plt.plot(muertes_diarias.index,muertes_diarias[pais].rolling(window =7).mean(),'r')
+plt.ylabel('Daily Deaths')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xlim(muertes_diarias.index[0],muertes_diarias.index[len(muertes_diarias.index)-1])
+plt.legend(['Rolling average 7 days','Daily data'])
+
+plt.figure(24,figsize=(12,12))
+plt.subplot(211)
+plt.bar(mv.index,mv['Fully Vaxxed'],color='blue')
+plt.title('Population fully vaccinated by month '+pais,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Population fully vaccinated (%)')
+plt.xticks(rotation=90,size=8)
+plt.grid()
+plt.subplot(212)
+plt.bar(mv.index,mv['Monthly Deaths'],color='red')
+plt.title('COVID-19 Deaths by month '+pais,size=12,loc='left')
+plt.title('cadecastro.com',size=11,loc='right')
+plt.ylabel('COVID-19 Deaths')
+plt.xticks(rotation=90,size=8)
+plt.grid()
+
+let_pais=pd.DataFrame(muertes_mensuales[pais]/casos_mensuales[pais]*100).rename(columns={pais:'CFR'})
+
+plt.figure(25,figsize=(12,6))
+plt.bar(let_pais.index,let_pais['CFR'],color='blue')
+plt.plot(let_pais.index,let_pais['CFR'].rolling(window =2).mean(),'r')
+plt.title('Monthly COVID-19 Case Fatality Rate - '+pais)
+plt.title('cadecastro.com',loc='right')
+plt.ylabel('Deaths/Cases Monthly (%)')
+plt.ylim(0,None)
+plt.xticks(rotation=90)
+plt.grid(True,'both','both')
+
+x=mv['Fully Vaxxed'][11:]
+y=mv['Monthly Deaths'][11:]
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(12,6))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title(pais+' COVID-19 Deaths vs. People Fully Vaccinated, Monthly - R²='+R2,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Monthly COVID-19 Deaths',size=12)
+plt.xlabel('People Fully Vaccinated at end of month (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for j in range(len(x)):
+  ax.text(x[j], y[j], x.index[j], size=10)
+
+#Datos de cambio de movilidad global:
+mov_global=pd.read_csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',usecols=['date','country_region','residential_percent_change_from_baseline'])
+mov_global['date']=pd.to_datetime(mov_global['date'],yearfirst=True)
+mov_medio=pd.pivot_table(data=mov_global,values='residential_percent_change_from_baseline',index='country_region',aggfunc=np.mean)
+
+#Cambio movilidad residencial por regiones en países seleccionados:
+mov_latam=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Colombia'],mov_medio['residential_percent_change_from_baseline']['Mexico'],
+                             mov_medio['residential_percent_change_from_baseline']['Argentina'],mov_medio['residential_percent_change_from_baseline']['Peru'],
+                             mov_medio['residential_percent_change_from_baseline']['Ecuador'],mov_medio['residential_percent_change_from_baseline']['Panama'],
+                             mov_medio['residential_percent_change_from_baseline']['Brazil'],mov_medio['residential_percent_change_from_baseline']['Chile'],
+                             mov_medio['residential_percent_change_from_baseline']['Uruguay'],mov_medio['residential_percent_change_from_baseline']['Paraguay']],
+                       index=['Colombia','México','Argentina','Perú','Ecuador','Panamá','Brasil','Chile','Uruguay','Paraguay'])
+mov_latam=mov_latam.rename(columns={0:'Residential mobility average change'})
+mov_latam=mov_latam.sort_values(by='Residential mobility average change',ascending=False)
+
+mov_eur=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Poland'],mov_medio['residential_percent_change_from_baseline']['Italy'],
+                             mov_medio['residential_percent_change_from_baseline']['Portugal'],mov_medio['residential_percent_change_from_baseline']['France'],
+                             mov_medio['residential_percent_change_from_baseline']['Greece'],mov_medio['residential_percent_change_from_baseline']['Spain'],
+                             mov_medio['residential_percent_change_from_baseline']['Austria'],mov_medio['residential_percent_change_from_baseline']['Germany'],
+                             mov_medio['residential_percent_change_from_baseline']['Denmark'],mov_medio['residential_percent_change_from_baseline']['Sweden'],
+                           mov_medio['residential_percent_change_from_baseline']['Netherlands'],mov_medio['residential_percent_change_from_baseline']['Belgium'],
+                           mov_medio['residential_percent_change_from_baseline']['Russia'],mov_medio['residential_percent_change_from_baseline']['Finland']],
+                       index=['Poland','Italy','Portugal','France','Greece','Spain','Austria','Germany','Denmark','Sweden','Netherlands','Belgium','Russia','Finland'])
+mov_eur=mov_eur.rename(columns={0:'Residential mobility average change'})
+mov_eur=mov_eur.sort_values(by='Residential mobility average change',ascending=False)
+
+mov_ang=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['United States'],mov_medio['residential_percent_change_from_baseline']['Australia'],
+                             mov_medio['residential_percent_change_from_baseline']['United Kingdom'],mov_medio['residential_percent_change_from_baseline']['Ireland'],
+                             mov_medio['residential_percent_change_from_baseline']['Canada'],mov_medio['residential_percent_change_from_baseline']['New Zealand']],
+                       index=['United States','Australia','United Kingdom','Ireland','Canada','New Zealand'])
+mov_ang=mov_ang.rename(columns={0:'Residential mobility average change'})
+mov_ang=mov_ang.sort_values(by='Residential mobility average change',ascending=False)
+
+mov_asia=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Japan'],mov_medio['residential_percent_change_from_baseline']['Vietnam'],
+                             mov_medio['residential_percent_change_from_baseline']['India'],mov_medio['residential_percent_change_from_baseline']['Philippines'],
+                             mov_medio['residential_percent_change_from_baseline']['Thailand'],mov_medio['residential_percent_change_from_baseline']['South Korea'],
+                            mov_medio['residential_percent_change_from_baseline']['Mongolia'],mov_medio['residential_percent_change_from_baseline']['Indonesia']],
+                       index=['Japan','Vietnam','India','Philippines','Thailand','South Korea','Mongolia','Indonesia'])
+mov_asia=mov_asia.rename(columns={0:'Residential mobility average change'})
+mov_asia=mov_asia.sort_values(by='Residential mobility average change',ascending=False)
+
+mov_med=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Israel'],mov_medio['residential_percent_change_from_baseline']['Turkey'],
+                             mov_medio['residential_percent_change_from_baseline']['Jordan'],mov_medio['residential_percent_change_from_baseline']['Saudi Arabia'],
+                             mov_medio['residential_percent_change_from_baseline']['Iraq'],
+                            mov_medio['residential_percent_change_from_baseline']['Lebanon'],mov_medio['residential_percent_change_from_baseline']['Egypt'],
+                           mov_medio['residential_percent_change_from_baseline']['Libya'],mov_medio['residential_percent_change_from_baseline']['Pakistan']],
+                       index=['Israel','Turkey','Jordan','Saudi Arabia','Iraq','Lebanon','Egypt','Libya','Pakistan'])
+mov_med=mov_med.rename(columns={0:'Residential mobility average change'})
+mov_med=mov_med.sort_values(by='Residential mobility average change',ascending=False)
+
+mov_africa=pd.DataFrame(data=[mov_medio['residential_percent_change_from_baseline']['Nigeria'],mov_medio['residential_percent_change_from_baseline']['South Africa'],
+                             mov_medio['residential_percent_change_from_baseline']['Kenya'],
+                             mov_medio['residential_percent_change_from_baseline']['Mozambique'],mov_medio['residential_percent_change_from_baseline']['Namibia'],
+                              mov_medio['residential_percent_change_from_baseline']['Rwanda']],
+                       index=['Nigeria','South Africa','Kenya','Mozambique','Namibia','Rwanda'])
+mov_africa=mov_africa.rename(columns={0:'Residential mobility average change'})
+mov_africa=mov_africa.sort_values(by='Residential mobility average change',ascending=False)
+
+#Movilidad residencial mundial:
+mov_mund=mov_latam.append([mov_eur,mov_ang,mov_asia,
+                                           mov_med,mov_africa]).sort_values(by='Residential mobility average change',ascending=False)
+mov_mund=mov_mund.drop_duplicates()
+
+plt.figure(27,figsize=(13,6))
+plt.bar(mov_mund.index,mov_mund['Residential mobility average change'],color='blue')
+plt.title('Residential mobility average change since 2020',size=14)
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Change in residential mobility (%)')
+plt.xlabel('Data source: https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',size=8)
+plt.xticks(rotation=90)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+
+comparativo_latam=pd.merge(left=comparativo_latam,right=mov_latam,left_index=True,right_index=True)
+comparativo_eur=pd.merge(left=comparativo_eur,right=mov_eur,left_index=True,right_index=True)
+comparativo_ang=pd.merge(left=comparativo_ang,right=mov_ang,left_index=True,right_index=True)
+comparativo_asia=pd.merge(left=comparativo_asia,right=mov_asia,left_index=True,right_index=True)
+comparativo_med=pd.merge(left=comparativo_med,right=mov_med,left_index=True,right_index=True)
+comparativo_africa=pd.merge(left=comparativo_africa,right=mov_africa,left_index=True,right_index=True)
+
+comparativo_mund=pd.merge(left=comparativo_mund,right=mov_mund,left_index=True,right_index=True)
+comparativo_mund=comparativo_mund.drop_duplicates()
+
+x=comparativo_latam['Residential mobility average change']
+y=comparativo_latam['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(12,6))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('LATIN AMERICA Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Deaths/Population')
+plt.xlabel('Residential mobility average change (%)',size=10)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], comparativo_latam.index[index], size=10)
+
+x=comparativo_eur['Residential mobility average change']
+y=comparativo_eur['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(12,6))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('EUROPE Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Deaths/Population')
+plt.xlabel('Residential mobility average change (%)',size=10)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], comparativo_eur.index[index], size=10)
+
+x=comparativo_ang['Residential mobility average change']
+y=comparativo_ang['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(12,6))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('ANGLO Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Deaths/Population')
+plt.xlabel('Residential mobility average change (%)',size=10)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], comparativo_ang.index[index], size=10)
+
+
+x=comparativo_mund['Residential mobility average change']
+y=comparativo_mund['Deaths per capita']
+correlation_matrix = np.corrcoef(x, y)
+correlation_xy = correlation_matrix[0,1]
+R2 = correlation_xy**2
+R2=str(np.format_float_positional(R2,precision=3))
+d=np.polyfit(x,y,1)
+f= np.poly1d(d)
+y1=f(x)
+fig, ax = plt.subplots(figsize=(12,6))
+plt.plot(x,y,'bo')
+plt.plot(x,y1,'r')
+plt.title('Global Deaths per capita vs. Residential mobility change - R²='+R2,size=12,loc='left')
+plt.title('cadecastro.com',size=10,loc='right')
+plt.ylabel('Deaths/Population')
+plt.xlabel('Residential mobility average change (%)',size=10)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for index in range(len(x)):
+  ax.text(x[index], y[index], comparativo_mund.index[index], size=10)
