@@ -39,6 +39,7 @@ muertes_diarias['Year']=pd.DatetimeIndex(muertes_diarias.index).year
 muertes_diarias['Month']=pd.DatetimeIndex(muertes_diarias.index).month
 muertes_diarias['Period']=pd.DatetimeIndex(muertes_diarias.index).to_period('M')
 muertes_diarias['Period']=muertes_diarias['Period'].astype(str)
+muertes_diarias=muertes_diarias.rename(columns={'US':'United States'})
 #Muertes mensuales:
 muertes_mensuales=muertes_diarias.groupby('Period').sum()
 muertes2021=muertes_diarias[muertes_diarias['Year']==2021]
@@ -57,6 +58,7 @@ casos_diarias=casos_global.diff(periods=1,axis=0)
 casos_diarias.index=pd.to_datetime(casos_diarias.index,dayfirst=False,yearfirst=False)
 casos_diarias['Mundo']=casos_diarias.sum(axis=1)
 casos_diarias['Period']=pd.DatetimeIndex(casos_diarias.index).to_period('M').astype(str)
+casos_diarias=casos_diarias.rename(columns={'US':'United States'})
 casos_mensuales=casos_diarias.groupby('Period').sum()
 
 print('Confirmed cases World = ',np.format_float_positional(casos_diarias['Mundo'].sum(),precision=0))
@@ -117,7 +119,7 @@ comparativo_eur=comparativo_eur.rename(columns={0:'Deaths per capita'})
 comparativo_eur=comparativo_eur.sort_values(by='Deaths per capita',ascending=False)
 
 #Comparativo países anglos:
-comparativo_ang=pd.DataFrame(data=[muertes_diarias['United Kingdom'].sum()/pob2021['PopTotal']['United Kingdom'],muertes_diarias['US'].sum()/pob2021['PopTotal']['United States of America'],
+comparativo_ang=pd.DataFrame(data=[muertes_diarias['United Kingdom'].sum()/pob2021['PopTotal']['United Kingdom'],muertes_diarias['United States'].sum()/pob2021['PopTotal']['United States of America'],
                                muertes_diarias['Ireland'].sum()/pob2021['PopTotal']['Ireland'],muertes_diarias['Australia'].sum()/pob2021['PopTotal']['Australia'],
                                muertes_diarias['New Zealand'].sum()/pob2021['PopTotal']['New Zealand'],muertes_diarias['Canada'].sum()/pob2021['PopTotal']['Canada']],
                          index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
@@ -308,7 +310,7 @@ mpc2021_eur=mpc2021_eur.rename(columns={0:'Deaths per capita'})
 mpc2021_eur=mpc2021_eur.sort_values(by='Deaths per capita',ascending=False)
 
 #Muertes per capita 2021 países anglos:
-mpc2021_ang=pd.DataFrame(data=[m2021['Deaths 2021']['United Kingdom']/pob2021['PopTotal']['United Kingdom'],m2021['Deaths 2021']['US']/pob2021['PopTotal']['United States of America'],
+mpc2021_ang=pd.DataFrame(data=[m2021['Deaths 2021']['United Kingdom']/pob2021['PopTotal']['United Kingdom'],m2021['Deaths 2021']['United States']/pob2021['PopTotal']['United States of America'],
                                m2021['Deaths 2021']['Ireland']/pob2021['PopTotal']['Ireland'],m2021['Deaths 2021']['Australia']/pob2021['PopTotal']['Australia'],
                                m2021['Deaths 2021']['New Zealand']/pob2021['PopTotal']['New Zealand'],m2021['Deaths 2021']['Canada']/pob2021['PopTotal']['Canada']],
                          index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
@@ -399,7 +401,7 @@ mpcdic21_eur=mpcdic21_eur.rename(columns={12:'Deaths per capita'})
 mpcdic21_eur=mpcdic21_eur.sort_values(by='Deaths per capita',ascending=False)
 
 #Países anglos:
-mpcdic21_ang=pd.DataFrame(data=[mdic21['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mdic21['US']/pob2021['PopTotal']['United States of America'],
+mpcdic21_ang=pd.DataFrame(data=[mdic21['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mdic21['United States']/pob2021['PopTotal']['United States of America'],
                                mdic21['Ireland']/pob2021['PopTotal']['Ireland'],mdic21['Australia']/pob2021['PopTotal']['Australia'],
                                mdic21['New Zealand']/pob2021['PopTotal']['New Zealand'],mdic21['Canada']/pob2021['PopTotal']['Canada']],
                          index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
@@ -491,7 +493,7 @@ mpcjan22_eur=mpcjan22_eur.rename(columns={'2022-01':'Deaths per capita'})
 mpcjan22_eur=mpcjan22_eur.sort_values(by='Deaths per capita',ascending=False)
 
 #Países anglos:
-mpcjan22_ang=pd.DataFrame(data=[mjan22['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mjan22['US']/pob2021['PopTotal']['United States of America'],
+mpcjan22_ang=pd.DataFrame(data=[mjan22['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mjan22['United States']/pob2021['PopTotal']['United States of America'],
                                mjan22['Ireland']/pob2021['PopTotal']['Ireland'],mjan22['Australia']/pob2021['PopTotal']['Australia'],
                                mjan22['New Zealand']/pob2021['PopTotal']['New Zealand'],mjan22['Canada']/pob2021['PopTotal']['Canada']],
                          index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
@@ -738,7 +740,7 @@ mpcfeb22_eur=mpcfeb22_eur.rename(columns={'2022-02':'Deaths per capita'})
 mpcfeb22_eur=mpcfeb22_eur.sort_values(by='Deaths per capita',ascending=False)
 
 #Países anglos:
-mpcfeb22_ang=pd.DataFrame(data=[mfeb22['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mfeb22['US']/pob2021['PopTotal']['United States of America'],
+mpcfeb22_ang=pd.DataFrame(data=[mfeb22['United Kingdom']/pob2021['PopTotal']['United Kingdom'],mfeb22['United States']/pob2021['PopTotal']['United States of America'],
                                mfeb22['Ireland']/pob2021['PopTotal']['Ireland'],mfeb22['Australia']/pob2021['PopTotal']['Australia'],
                                mfeb22['New Zealand']/pob2021['PopTotal']['New Zealand'],mfeb22['Canada']/pob2021['PopTotal']['Canada']],
                          index=['United Kingdom','United States','Ireland','Australia','New Zealand','Canada'])
@@ -847,10 +849,11 @@ plt.ylim(0,None)
 for index in range(len(x)):
   ax.text(x[index], y[index], x.index[index], size=11)
 
-pais=str('Colombia')
+pais=str('United States')
 
 #Muertes anuales:
 m_anuales=muertes_diarias.groupby(by='Year').sum()
+
 #print(m_anuales)
 
 m_anuales[pais].plot.bar(figsize=(8,4),color='blue')
@@ -860,7 +863,10 @@ plt.xlabel('cadecastro.com')
 X=pd.DataFrame(muertes_mensuales[pais]).rename(columns={pais:'Monthly Deaths'})
 Y=pd.DataFrame(full[pais]).rename(columns={pais:'Fully Vaxxed'})
 mv=X.join(Y).fillna(0)
-#print(mv)
+mv=pd.merge(left=mv,right=casos_mensuales[pais],left_index=True,right_index=True)
+mv=mv.rename(columns={pais:'Cases'})
+mv['CFR']=mv['Monthly Deaths']/mv['Cases']*100
+print(mv)
 
 #Salida resultados:
 print('Confirmed cases at ',pais,'= ',np.format_float_positional(casos_diarias[pais].sum(),precision=0))
@@ -887,30 +893,27 @@ plt.ylim(0,None)
 plt.xlim(muertes_diarias.index[0],muertes_diarias.index[len(muertes_diarias.index)-1])
 plt.legend(['Rolling average 7 days','Daily data'])
 
-plt.figure(24,figsize=(12,12))
-plt.subplot(211)
-plt.bar(mv.index,mv['Fully Vaxxed'],color='blue')
-plt.title('Population fully vaccinated by month '+pais,size=12,loc='left')
-plt.title('cadecastro.com',size=10,loc='right')
+plt.figure(24,figsize=(12,20))
+plt.subplot(411)
+plt.bar(mv.index,mv['Fully Vaxxed'],color='green')
+plt.title('Monthly COVID-19 numbers at '+pais,size=13,loc='center')
 plt.ylabel('Population fully vaccinated (%)')
 plt.xticks(rotation=90,size=8)
 plt.grid()
-plt.subplot(212)
+plt.subplot(412)
+plt.bar(mv.index,mv['Cases'],color='blue')
+plt.ylabel('COVID-19 Cases')
+plt.xticks(rotation=90,size=8)
+plt.grid()
+plt.subplot(413)
 plt.bar(mv.index,mv['Monthly Deaths'],color='red')
-plt.title('COVID-19 Deaths by month '+pais,size=12,loc='left')
-plt.title('cadecastro.com',size=11,loc='right')
 plt.ylabel('COVID-19 Deaths')
 plt.xticks(rotation=90,size=8)
 plt.grid()
-
-let_pais=pd.DataFrame(muertes_mensuales[pais]/casos_mensuales[pais]*100).rename(columns={pais:'CFR'})
-
-plt.figure(25,figsize=(12,6))
-plt.bar(let_pais.index,let_pais['CFR'],color='blue')
-plt.plot(let_pais.index,let_pais['CFR'].rolling(window =2).mean(),'r')
-plt.title('Monthly COVID-19 Case Fatality Rate - '+pais)
-plt.title('cadecastro.com',loc='right')
+plt.subplot(414)
+plt.bar(mv.index,mv['CFR'],color='orange')
 plt.ylabel('Deaths/Cases Monthly (%)')
+plt.xlabel('cadecastro.com',size=11)
 plt.ylim(0,None)
 plt.xticks(rotation=90)
 plt.grid(True,'both','both')
