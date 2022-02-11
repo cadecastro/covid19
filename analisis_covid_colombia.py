@@ -31,8 +31,8 @@ covid["Fecha de muerte"] = pd.to_datetime(covid["Fecha de muerte"],dayfirst=True
 covid["Fecha de inicio de síntomas"] = pd.to_datetime(covid["Fecha de inicio de síntomas"],dayfirst=True)
 #Corrección datos:
 covid['Nombre departamento']=covid['Nombre departamento'].replace(to_replace=['Tolima','Caldas','STA MARTA D.E.'],value=['TOLIMA','CALDAS','SANTA MARTA'])
-covid['Sexo']=covid['Sexo'].replace(to_replace=['m'],value=['M'])
-#Casos que fallecieron por COVID-19:
+covid['Sexo']=covid['Sexo'].replace(to_replace=['m','f'],value=['M','F'])
+#Muertes por COVID-19:
 muertes=covid[covid['Estado']=='Fallecido']
 #RESUMEN REGIONES:
 casos_regiones=pd.pivot_table(covid,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
@@ -46,33 +46,42 @@ cfr_reg=regiones['Muertes']/regiones['Casos']*100
 cfr_reg=cfr_reg.sort_values(ascending=False)
 let_reg=regiones['Muertes']/regiones['Población']*100
 let_reg=let_reg.sort_values(ascending=False)
+#Conteo de muertes por fecha de ocurrencia:
+fecha_muerte=pd.pivot_table(data=muertes,values='Edad',index='Fecha de muerte',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
+fecha_muerte['COLOMBIA']=fecha_muerte.sum(axis=1)
+#Conteo de casos por fecha de inicio de síntomas:
+fecha_sint=pd.pivot_table(data=covid,values='Edad',index='Fecha de inicio de síntomas',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
+fecha_sint['COLOMBIA']=fecha_sint.sum(axis=1)
+#Cifras por sexo:
+sexo=pd.pivot_table(data=covid,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
+sexo2=pd.pivot_table(data=muertes,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+sexo=pd.merge(left=sexo,right=sexo2,left_index=True,right_index=True)
+sexo['CFR']=sexo['Muertes']/sexo['Casos']*100
+sexo=sexo.sort_values(by='Muertes',ascending=False)
+del sexo2
+#Casos, muertes y CFR por edad:
+edades=pd.pivot_table(data=covid,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
+edades2=pd.pivot_table(data=muertes,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+edades=pd.merge(left=edades,right=edades2,left_index=True,right_index=True)
+edades['CFR']=edades['Muertes']/edades['Casos']*100
+del edades2
+#Edades y sexo:
+edades_c=pd.pivot_table(data=covid,values='Nombre departamento',index='Edad',
+                        columns='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'F':'Casos F','M':'Casos M'})
+edades_m=pd.pivot_table(data=muertes,values='Nombre departamento',index='Edad',
+                        columns='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'F':'Muertes F','M':'Muertes M'})
+edades_sexo=pd.merge(left=edades_c,right=edades_m,left_index=True,right_index=True)
+edades_sexo['CFR M']=edades_sexo['Muertes M']/edades_sexo['Casos M']*100
+edades_sexo['CFR F']=edades_sexo['Muertes F']/edades_sexo['Casos F']*100
+del edades_c,edades_m
+
 #Muertes per cápita en regiones de interés:
-mpc=pd.pivot_table(data=muertes,values='Edad',index='Fecha de muerte',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
-mpc=mpc[['AMAZONAS','ANTIOQUIA','BARRANQUILLA','BOGOTA','VALLE']]
+mpc=fecha_muerte[['AMAZONAS','ANTIOQUIA','BARRANQUILLA','BOGOTA','VALLE']]
 mpc['AMAZONAS']=mpc['AMAZONAS']/regiones['Población']['AMAZONAS']
 mpc['ANTIOQUIA']=mpc['ANTIOQUIA']/regiones['Población']['ANTIOQUIA']
 mpc['BARRANQUILLA']=mpc['BARRANQUILLA']/regiones['Población']['BARRANQUILLA']
 mpc['BOGOTA']=mpc['BOGOTA']/regiones['Población']['BOGOTA']
 mpc['VALLE']=mpc['VALLE']/regiones['Población']['VALLE']
-#COLOMBIA:
-#Conteo de muertes por fecha de ocurrencia:
-fecha_muerte=muertes['Fecha de muerte'].value_counts().fillna(0)
-fecha_muerte=fecha_muerte.sort_index()
-#Conteo de casos por fecha de inicio de síntomas:
-fecha_sint=covid['Fecha de inicio de síntomas'].value_counts().fillna(0)
-fecha_sint=fecha_sint.sort_index()
-#Muertes por sexo:
-sexo_muerte=muertes.groupby(['Sexo'])[['Fecha de muerte']].count().fillna(0)
-sexo_muerte=sexo_muerte.sort_values(by=['Fecha de muerte'],ascending=False)
-#Muertes por edad:
-edades_muerte=muertes.groupby(['Edad'])[['Fecha de muerte']].count().fillna(0)
-#Casos por edad:
-edades_casos=covid.groupby(['Edad'])[['Edad']].count().fillna(0)
-#CFR por edad:
-CFR_edad=edades_muerte['Fecha de muerte'].divide(edades_casos['Edad'])
-#Estadísticas casos por edad:
-stat_edad_casos=covid['Edad'].describe()
-stat_edad_muertes=muertes['Edad'].describe()
 
 #MUERTES MENSUALES:
 muertes["Período"] = pd.DatetimeIndex(muertes["Fecha de muerte"]).to_period('M').astype(str)
@@ -94,26 +103,26 @@ print('MUERTES PER CÁPITA EN COLOMBIA =',np.format_float_positional(regiones['M
 print('LETALIDAD POR CASO EN COLOMBIA =',np.format_float_positional(regiones['Muertes'].sum()/regiones['Casos'].sum()*100,precision=3),'%')
 print('-------------------------------------------------------------------')
 print('Estadísticas de edad de los casos en COLOMBIA:')
-print(stat_edad_casos)
+print(covid['Edad'].describe())
 print('Estadísticas de edad de las muertes en COLOMBIA:')
-print(stat_edad_muertes)
+print(muertes['Edad'].describe())
 print('-------------------------------------------------------------------')
 print('AVISO: LAS CURVAS DE *CASOS* DEPENDEN DE LAS PRUEBAS Y')
 print('POR CAMBIOS EN SU MUESTREO NO SON CONFIABLES')
 print('*LA ATENCIÓN DEBE CENTRARSE EN LAS CURVAS DE MUERTES DIARIAS*')
 
 plt.figure(1,figsize=(12,5))
-plt.bar(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales['COLOMBIA'][:len(muertes_mensuales.index)-1],color='blue')
-plt.plot(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales['COLOMBIA'][:len(muertes_mensuales.index)-1].rolling(window =2).mean(),'r')
+plt.bar(muertes_mensuales.index,muertes_mensuales['COLOMBIA'],color='blue')
+plt.plot(muertes_mensuales.index,muertes_mensuales['COLOMBIA'].rolling(window =2).mean(),'r')
 plt.title('Muertes mensuales COVID-19 en COLOMBIA',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xticks(rotation=90)
-plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-2])
+plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-1])
 plt.legend(['Media móvil 2 meses','Datos'])
 plt.ylabel('Muertes mensuales')
 
-mpc_mensuales.plot(figsize=(12,5),color=['orange','gray','red','blue','lime'])
+mpc_mensuales.plot.bar(figsize=(12,5),color=['orange','gray','red','blue','lime'])
 plt.title('Muertes per cápita COVID-19 mensuales',size=14,loc='left')
 plt.title('cadecastro.com',size=11,loc='right')
 plt.grid()
@@ -122,21 +131,19 @@ plt.ylim(0,None)
 
 plt.figure(3,figsize=(12,5))
 plt.subplot(211)
-#plt.bar(fecha_muerte.index[:len(fecha_muerte)-1],fecha_muerte[:len(fecha_muerte)-1],color='blue')
-plt.plot(fecha_muerte.index[:len(fecha_muerte)-1],fecha_muerte[:len(fecha_muerte)-1].rolling(window =7).mean(),'r')
+plt.plot(fecha_muerte.index[:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][:len(fecha_muerte)-1].rolling(window =7).mean(),'r')
 plt.title('Cifras diarias COVID-19 en Colombia',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(fecha_muerte.index[0],fecha_muerte.index[len(fecha_muerte)-2])
-plt.legend(['Media móvil 7 días','Datos'])
+plt.legend(['Media móvil 7 días'])
 plt.ylabel('Muertes diarias')
 plt.subplot(212)
-#plt.bar(fecha_sint.index[:len(fecha_sint)-6],fecha_sint[:len(fecha_sint)-6],color='blue')
-plt.plot(fecha_sint.index[:len(fecha_sint)-6],fecha_sint[:len(fecha_sint)-6].rolling(window =7).mean(),'b')
+plt.plot(fecha_sint.index[:len(fecha_sint)-6],fecha_sint['COLOMBIA'][:len(fecha_sint)-6].rolling(window =7).mean(),'b')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(fecha_sint.index[0],fecha_sint.index[len(fecha_sint)-7])
-plt.legend(['Media móvil 7 días','Datos'])
+plt.legend(['Media móvil 7 días'])
 plt.ylabel('Inicio de síntomas diarios')
 plt.xlabel('cadecastro.com')
 
@@ -153,8 +160,8 @@ plt.ylim(0,None)
 plt.xlim(mpc.index[0],mpc.index[len(mpc.index)-2])
 
 plt.figure(5,figsize=(12,5))
-plt.bar(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte[len(fecha_muerte)-31:len(fecha_muerte)-1],color='blue')
-plt.plot(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte[len(fecha_muerte)-31:len(fecha_muerte)-1].rolling(window=7).mean(),'r')
+plt.bar(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][len(fecha_muerte)-31:len(fecha_muerte)-1],color='blue')
+plt.plot(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][len(fecha_muerte)-31:len(fecha_muerte)-1].rolling(window=7).mean(),'r')
 plt.title('Muertes COVID-19 en Colombia último mes',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
@@ -163,8 +170,8 @@ plt.ylabel('Muertes diarias')
 plt.xlabel('cadecastro.com')
 
 plt.figure(6,figsize=(12,5))
-plt.bar(fecha_sint.index[len(fecha_sint)-36:len(fecha_sint)-6],fecha_sint[len(fecha_sint)-36:len(fecha_sint)-6],color='blue')
-plt.plot(fecha_sint.index[len(fecha_sint)-36:len(fecha_sint)-6],fecha_sint[len(fecha_sint)-36:len(fecha_sint)-6].rolling(window=7).mean(),'r')
+plt.bar(fecha_sint.index[len(fecha_sint)-36:len(fecha_sint)-6],fecha_sint['COLOMBIA'][len(fecha_sint)-36:len(fecha_sint)-6],color='blue')
+plt.plot(fecha_sint.index[len(fecha_sint)-36:len(fecha_sint)-6],fecha_sint['COLOMBIA'][len(fecha_sint)-36:len(fecha_sint)-6].rolling(window=7).mean(),'r')
 plt.title('Casos por inicio de síntomas en Colombia último mes',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
@@ -174,40 +181,60 @@ plt.xlabel('cadecastro.com')
 
 plt.figure(7,figsize=(15,8))
 plt.subplot(121)
-plt.fill_between(edades_casos.index,edades_casos['Edad'],color='blue')
-plt.fill_between(edades_muerte.index,edades_muerte['Fecha de muerte'],color='red')
+plt.fill_between(edades.index,edades['Casos'],color='blue')
+plt.fill_between(edades.index,edades['Muertes'],color='red')
 plt.title('Casos y muertes COVID-19 Colombia por edad',loc='left')
 plt.grid(True,'both','both')
 plt.legend(['Casos','Muertes'])
 plt.xlim(1,114)
 plt.ylim(0,None)
 plt.subplot(122)
-plt.plot(CFR_edad,'b')
-plt.ylabel('Muertes/Casos')
+plt.plot(edades.index,edades['CFR'],'orange')
+plt.ylabel('Muertes/Casos (%)')
 plt.xlabel('cadecastro.com')
 plt.grid(True,'both','both')
 plt.legend(['CFR'])
 plt.xlim(1,90)
-plt.ylim(0,0.4)
+plt.ylim(0,40)
 
-plt.figure(8)
-plt.pie(sexo_muerte['Fecha de muerte'],labels=sexo_muerte.index,colors=['red','blue'])
-plt.title('Muertes COVID-19 Colombia por género',loc='left')
+plt.figure(8,figsize=(15,5))
+plt.subplot(131)
+plt.pie(sexo['Muertes'],labels=sexo.index,colors=['navy','violet'])
+plt.title('Muertes COVID-19 Colombia',loc='left')
+plt.subplot(132)
+plt.pie(sexo['Casos'],labels=sexo.index,colors=['navy','violet'])
+plt.title('Casos COVID-19 Colombia',loc='left')
+plt.xlabel('cadecastro.com')
+plt.subplot(133)
+plt.bar(sexo.index,sexo['CFR'],color='gold')
+plt.title('Letalidad COVID-19 por género',loc='left')
+plt.ylabel('Muertes/Casos (%)')
 
 plt.figure(9,figsize=(12,6))
+plt.plot(edades_sexo.index,edades_sexo['CFR M'],'navy')
+plt.plot(edades_sexo.index,edades_sexo['CFR F'],'violet')
+plt.title('Tasa de letalidad por caso y género COVID-19 Colombia')
+plt.ylabel('Muertes/Casos (%)')
+plt.xlabel('cadecastro.com')
+plt.grid(True,'both','both')
+plt.legend(['Masculino','Femenino'])
+plt.xlim(1,90)
+plt.ylim(0,40)
+
+plt.figure(10,figsize=(12,6))
 let_reg.plot.bar(color='blue')
 plt.title('Muertes COVID-19 per cápita',loc='left')
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Muertes/Habitantes (%)')
 plt.grid(True,which='both',axis='y')
 
-plt.figure(10,figsize=(12,6))
+plt.figure(11,figsize=(12,6))
 cfr_reg.plot.bar(color='blue')
 plt.title('Tasa de letalidad por caso',loc='left')
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Muertes/Casos (%)')
 
-plt.figure(11,figsize=(12,5))
+plt.figure(12,figsize=(12,5))
 plt.subplot(121)
 covid['Edad'].plot.hist(color='blue')
 plt.title('Histograma casos COVID-19',loc='center')
@@ -223,21 +250,20 @@ depto=str(input('Departamento o distrito a analizar (todo en mayúsculas):'))
 #Casos y muertes:
 casos_dep=covid[covid['Nombre departamento']==depto]
 muertes_dep=casos_dep[casos_dep['Estado']=='Fallecido']
-#Conteo de casos por fecha de inicio de síntomas:
-fecha_sint_dep=casos_dep['Fecha de inicio de síntomas'].value_counts().fillna(0)
-fecha_sint_dep=fecha_sint_dep.sort_index()
-#Conteo por fecha de ocurrencia:
-fecha_muerte_dep=muertes_dep['Fecha de muerte'].value_counts().fillna(0)
-fecha_muerte_dep=fecha_muerte_dep.sort_index()
-#Muertes por edad:
-edades_muerte_dep=muertes_dep.groupby(['Edad'])[['Fecha de muerte']].count().fillna(0)
-#Casos por edad:
-edades_casos_dep=casos_dep.groupby(['Edad'])[['Edad']].count().fillna(0)
-#CFR por edad:
-CFR_dep=edades_muerte_dep['Fecha de muerte'].divide(edades_casos_dep['Edad'])
-#Estadísticas casos por edad:
-stat_edad_casos_dep=casos_dep['Edad'].describe()
-stat_edad_muertes_dep=muertes_dep['Edad'].describe()
+#Cifras por edad:
+#Casos, muertes y CFR por edad:
+edades_dep=pd.pivot_table(data=casos_dep,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
+edades_dep2=pd.pivot_table(data=muertes_dep,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+edades_dep=pd.merge(left=edades_dep,right=edades_dep2,left_index=True,right_index=True)
+edades_dep['CFR']=edades_dep['Muertes']/edades_dep['Casos']*100
+del edades_dep2
+#Cifras por sexo:
+sexo_dep=pd.pivot_table(data=casos_dep,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
+sexo_dep2=pd.pivot_table(data=muertes_dep,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+sexo_dep=pd.merge(left=sexo_dep,right=sexo_dep2,left_index=True,right_index=True)
+sexo_dep['CFR']=sexo_dep['Muertes']/sexo_dep['Casos']*100
+sexo_dep=sexo_dep.sort_values(by='Muertes',ascending=False)
+del sexo_dep2
 
 print('-------------------------------------------------------------------')
 print('POBLACIÓN EN '+depto+': ',np.format_float_positional(regiones['Población'][depto].sum(),precision=0))
@@ -247,79 +273,90 @@ print('MUERTES PER CÁPITA EN '+depto+' =',np.format_float_positional(regiones['
 print('LETALIDAD POR CASO EN '+depto+' =',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Casos'][depto].sum()*100,precision=3),'%')
 print('-------------------------------------------------------------------')
 print('Estadísticas de edad de los casos en ',depto)
-print(stat_edad_casos_dep)
+print(casos_dep['Edad'].describe())
 print('Estadísticas de edad de las muertes en ',depto)
-print(stat_edad_muertes_dep)
+print(muertes_dep['Edad'].describe())
 print('-------------------------------------------------------------------')
 print('AVISO: LAS CURVAS DE *CASOS* DEPENDEN DE LAS PRUEBAS Y')
 print('POR CAMBIOS EN SU MUESTREO NO SON CONFIABLES')
 print('*LA ATENCIÓN DEBE CENTRARSE EN LAS CURVAS DE MUERTES DIARIAS*')
 
-plt.figure(12,figsize=(12,5))
+plt.figure(13,figsize=(12,5))
 plt.subplot(211)
-#plt.bar(fecha_muerte_dep.index[:len(fecha_muerte_dep)-1],fecha_muerte_dep[:len(fecha_muerte_dep)-1],color='blue')
-plt.plot(fecha_muerte_dep[:len(fecha_muerte_dep)-1].rolling(window =7).mean(),'r')
+plt.plot(fecha_muerte[depto][:len(fecha_muerte.index)-1].rolling(window =7).mean(),'r')
 plt.title('Cifras diarias COVID-19 '+depto,loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
-plt.xlim(fecha_muerte_dep.index[0],fecha_muerte_dep.index[len(fecha_muerte_dep)-2])
-plt.legend(['Media móvil 7 días','Datos'])
+plt.xlim(fecha_muerte.index[0],fecha_muerte.index[len(fecha_muerte.index)-2])
+plt.legend(['Media móvil 7 días'])
 plt.ylabel('Muertes diarias')
 plt.subplot(212)
-#plt.bar(fecha_sint_dep.index[:len(fecha_sint_dep)-6],fecha_sint_dep[:len(fecha_sint_dep)-6],color='blue')
-plt.plot(fecha_sint_dep.index[:len(fecha_sint_dep)-6],fecha_sint_dep[:len(fecha_sint_dep)-6].rolling(window =7).mean(),'b')
+plt.plot(fecha_sint.index[:len(fecha_sint.index)-6],fecha_sint[depto][:len(fecha_sint.index)-6].rolling(window =7).mean(),'b')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
-plt.xlim(fecha_sint_dep.index[0],fecha_sint_dep.index[len(fecha_sint_dep)-7])
-plt.legend(['Media móvil 7 días','Datos'])
+plt.xlim(fecha_sint.index[0],fecha_sint.index[len(fecha_sint.index)-7])
+plt.legend(['Media móvil 7 días'])
 plt.ylabel('Inicio síntomas diarios')
 plt.xlabel('cadecastro.com')
 
-plt.figure(13,figsize=(12,5))
-plt.bar(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales[depto][:len(muertes_mensuales.index)-1],color='blue')
-plt.plot(muertes_mensuales.index[:len(muertes_mensuales.index)-1],muertes_mensuales[depto][:len(muertes_mensuales.index)-1].rolling(window =2).mean(),'r')
+plt.figure(14,figsize=(12,5))
+plt.bar(muertes_mensuales.index,muertes_mensuales[depto],color='blue')
+plt.plot(muertes_mensuales.index,muertes_mensuales[depto].rolling(window =2).mean(),'r')
 plt.title('Muertes mensuales COVID-19 en '+depto,loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xticks(rotation=90)
-plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-2])
+plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-1])
 plt.legend(['Media móvil 2 meses','Datos'])
 plt.ylabel('Muertes mensuales')
 
-plt.figure(14,figsize=(12,5))
-plt.bar(fecha_muerte_dep.index[len(fecha_muerte_dep)-31:len(fecha_muerte_dep)-1],fecha_muerte_dep[len(fecha_muerte_dep)-31:len(fecha_muerte_dep)-1],color='blue')
-plt.plot(fecha_muerte_dep.index[len(fecha_muerte_dep)-31:len(fecha_muerte_dep)-1],fecha_muerte_dep[len(fecha_muerte_dep)-31:len(fecha_muerte_dep)-1].rolling(window=7).mean(),'r')
+plt.figure(15,figsize=(12,5))
+plt.bar(fecha_muerte.index[len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],fecha_muerte[depto][len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],color='blue')
+plt.plot(fecha_muerte.index[len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],fecha_muerte[depto][len(fecha_muerte.index)-31:len(fecha_muerte.index)-1].rolling(window=7).mean(),'r')
 plt.title('Muertes COVID-19 en '+depto+' último mes',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
-plt.xlim(fecha_muerte_dep.index[len(fecha_muerte_dep)-31],fecha_muerte_dep.index[len(fecha_muerte_dep)-2])
+plt.xlim(fecha_muerte.index[len(fecha_muerte)-31],fecha_muerte.index[len(fecha_muerte.index)-2])
 plt.ylabel('Muertes diarias')
 plt.xlabel('cadecastro.com')
 
-plt.figure(15,figsize=(12,5))
-plt.bar(fecha_sint_dep.index[len(fecha_sint_dep)-36:len(fecha_sint_dep)-6],fecha_sint_dep[len(fecha_sint_dep)-36:len(fecha_sint_dep)-6],color='blue')
-plt.plot(fecha_sint_dep.index[len(fecha_sint_dep)-36:len(fecha_sint_dep)-6],fecha_sint_dep[len(fecha_sint_dep)-36:len(fecha_sint_dep)-6].rolling(window=7).mean(),'r')
+plt.figure(16,figsize=(12,5))
+plt.bar(fecha_sint.index[len(fecha_sint.index)-36:len(fecha_sint.index)-6],fecha_sint[depto][len(fecha_sint.index)-36:len(fecha_sint.index)-6],color='blue')
+plt.plot(fecha_sint.index[len(fecha_sint.index)-36:len(fecha_sint.index)-6],fecha_sint[depto][len(fecha_sint.index)-36:len(fecha_sint.index)-6].rolling(window=7).mean(),'r')
 plt.title('Casos por inicio de síntomas en '+depto+' último mes',loc='left')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
-plt.xlim(fecha_sint_dep.index[len(fecha_sint_dep)-36],fecha_sint_dep.index[len(fecha_sint_dep)-7])
+plt.xlim(fecha_sint.index[len(fecha_sint.index)-36],fecha_sint.index[len(fecha_sint.index)-7])
 plt.ylabel('Casos diarios')
 plt.xlabel('cadecastro.com')
 
-plt.figure(16,figsize=(15,8))
+plt.figure(17,figsize=(15,8))
 plt.subplot(121)
-plt.fill_between(edades_casos_dep.index,edades_casos_dep['Edad'],color='blue')
-plt.fill_between(edades_muerte_dep.index,edades_muerte_dep['Fecha de muerte'],color='red')
+plt.fill_between(edades_dep.index,edades_dep['Casos'],color='blue')
+plt.fill_between(edades_dep.index,edades_dep['Muertes'],color='red')
 plt.title('Casos y muertes COVID-19 por edad '+depto,loc='left')
 plt.grid(True,'both','both')
 plt.legend(['Casos','Muertes'])
 plt.xlim(1,114)
 plt.ylim(0,None)
 plt.subplot(122)
-plt.plot(CFR_dep,'b')
-plt.ylabel('Muertes/Casos')
+plt.plot(edades_dep.index,edades_dep['CFR'],'orange')
+plt.ylabel('Muertes/Casos (%)')
 plt.xlabel('cadecastro.com')
 plt.grid(True,'both','both')
 plt.legend(['CFR'])
 plt.xlim(1,90)
-plt.ylim(0,0.4)
+plt.ylim(0,40)
+
+plt.figure(18,figsize=(15,5))
+plt.subplot(131)
+plt.pie(sexo_dep['Muertes'],labels=sexo_dep.index,colors=['navy','violet'])
+plt.title('Muertes COVID-19 '+depto,loc='left')
+plt.subplot(132)
+plt.pie(sexo_dep['Casos'],labels=sexo_dep.index,colors=['navy','violet'])
+plt.title('Casos COVID-19 '+depto,loc='left')
+plt.xlabel('cadecastro.com')
+plt.subplot(133)
+plt.bar(sexo_dep.index,sexo_dep['CFR'],color='gold')
+plt.title('Letalidad COVID-19 por género',loc='left')
+plt.ylabel('Muertes/Casos (%)')
