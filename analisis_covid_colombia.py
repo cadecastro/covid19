@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ANÁLISIS CIFRAS COVID-19 COLOMBIA
 Autor: Carlos Armando De Castro (cadecastro.com)
@@ -8,12 +6,16 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import matplotlib.pyplot as plt
 import numpy as np
-#Input de región de interés:
-print('ANÁLISIS CIFRAS COVID-19 COLOMBIA')
-print('Autor: Carlos Armando De Castro - cadecastro.com')
+
+print('_______________________________________________________________________')
+print('|                  ANÁLISIS CIFRAS COVID-19 COLOMBIA                  |')
+print('|          Autor: Carlos Armando De Castro - cadecastro.com           |')
+print('_______________________________________________________________________')
+
 #Importar datos de Datos Abiertos Colombia:
 columnas=['Nombre departamento','Edad','Sexo','Ubicación del caso','Estado','Fecha de inicio de síntomas','Fecha de muerte']
 covid=pd.read_csv('https://www.datos.gov.co/api/views/gt2j-8ykr/rows.csv',usecols=columnas)
+#Importar datos de población:
 poblacion=pd.read_csv('https://raw.githubusercontent.com/cadecastro/analisis_datos/main/poblacion_deptos_2021.csv')
 poblacion=poblacion.set_index('DEPARTAMENTO')
 poblacion=poblacion.rename(columns={'POBLACION 2021':'Población'})
@@ -24,12 +26,12 @@ covid["Fecha de inicio de síntomas"] = pd.to_datetime(covid["Fecha de inicio de
 covid['Nombre departamento']=covid['Nombre departamento'].replace(to_replace=['Tolima','Caldas','STA MARTA D.E.','Cundinamarca','Santander'],
                                                                   value=['TOLIMA','CALDAS','SANTA MARTA','CUNDINAMARCA','SANTANDER'])
 covid['Sexo']=covid['Sexo'].replace(to_replace=['m','f'],value=['M','F'])
-#Muertes por COVID-19:
-muertes=covid[covid['Estado']=='Fallecido']
+covid["Período"] = pd.DatetimeIndex(covid["Fecha de muerte"]).to_period('M').astype(str)
+
 #RESUMEN REGIONES:
 casos_regiones=pd.pivot_table(covid,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 casos_regiones=casos_regiones.rename(columns={'Edad':'Casos'})
-muertes_regiones=pd.pivot_table(muertes,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
+muertes_regiones=pd.pivot_table(covid[covid['Estado']=='Fallecido'],values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 muertes_regiones=muertes_regiones.rename(columns={'Edad':'Muertes'})
 regiones=pd.merge(casos_regiones,muertes_regiones,left_index=True,right_index=True)
 regiones=pd.merge(regiones,poblacion,left_index=True,right_index=True)
@@ -37,65 +39,58 @@ del casos_regiones,muertes_regiones,poblacion
 regiones['MPC']=regiones['Muertes']/regiones['Población']*100
 regiones=regiones.sort_values(by='MPC',ascending=False)
 #Conteo de muertes por fecha de ocurrencia:
-fecha_muerte=pd.pivot_table(data=muertes,values='Edad',index='Fecha de muerte',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
+fecha_muerte=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Edad',index='Fecha de muerte',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 fecha_muerte['COLOMBIA']=fecha_muerte.sum(axis=1)
 #Conteo de casos por fecha de inicio de síntomas:
 fecha_sint=pd.pivot_table(data=covid,values='Edad',index='Fecha de inicio de síntomas',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 fecha_sint['COLOMBIA']=fecha_sint.sum(axis=1)
 #Cifras por sexo:
 sexo=pd.pivot_table(data=covid,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
-sexo2=pd.pivot_table(data=muertes,values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+sexo2=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Nombre departamento',index='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
 sexo=pd.merge(left=sexo,right=sexo2,left_index=True,right_index=True)
 sexo['CFR']=sexo['Muertes']/sexo['Casos']*100
 sexo=sexo.sort_values(by='Muertes',ascending=False)
 del sexo2
 #Casos, muertes y CFR por edad:
 edades=pd.pivot_table(data=covid,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Casos'})
-edades2=pd.pivot_table(data=muertes,values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
+edades2=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Nombre departamento',index='Edad',aggfunc=np.count_nonzero).fillna(0).rename(columns={'Nombre departamento':'Muertes'})
 edades=pd.merge(left=edades,right=edades2,left_index=True,right_index=True)
 edades['CFR']=edades['Muertes']/edades['Casos']*100
 del edades2
 #Edades y sexo:
 edades_c=pd.pivot_table(data=covid,values='Nombre departamento',index='Edad',
                         columns='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'F':'Casos F','M':'Casos M'})
-edades_m=pd.pivot_table(data=muertes,values='Nombre departamento',index='Edad',
+edades_m=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Nombre departamento',index='Edad',
                         columns='Sexo',aggfunc=np.count_nonzero).fillna(0).rename(columns={'F':'Muertes F','M':'Muertes M'})
 edades_sexo=pd.merge(left=edades_c,right=edades_m,left_index=True,right_index=True)
 edades_sexo['CFR M']=edades_sexo['Muertes M']/edades_sexo['Casos M']*100
 edades_sexo['CFR F']=edades_sexo['Muertes F']/edades_sexo['Casos F']*100
 del edades_c,edades_m
 
-#Muertes per cápita en regiones de interés:
-mpc=fecha_muerte[['AMAZONAS','ANTIOQUIA','BARRANQUILLA','BOGOTA','VALLE']]
-mpc['AMAZONAS']=mpc['AMAZONAS']/regiones['Población']['AMAZONAS']
-mpc['ANTIOQUIA']=mpc['ANTIOQUIA']/regiones['Población']['ANTIOQUIA']
-mpc['BARRANQUILLA']=mpc['BARRANQUILLA']/regiones['Población']['BARRANQUILLA']
-mpc['BOGOTA']=mpc['BOGOTA']/regiones['Población']['BOGOTA']
-mpc['VALLE']=mpc['VALLE']/regiones['Población']['VALLE']
+#Muertes per cápita en deptos. y distritos:
+mpc=pd.DataFrame(index=fecha_muerte.index)
+for depto in regiones.index:
+  mpc[depto]=fecha_muerte[depto]/regiones['Población'][depto]
 
 #MUERTES MENSUALES:
-muertes["Período"] = pd.DatetimeIndex(muertes["Fecha de muerte"]).to_period('M').astype(str)
-muertes_mensuales=pd.pivot_table(data=muertes,values='Edad',index='Período',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
+muertes_mensuales=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Edad',index='Período',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 muertes_mensuales['COLOMBIA']=muertes_mensuales.sum(axis=1)
 
-mpc_mensuales=muertes_mensuales[['AMAZONAS','ANTIOQUIA','BARRANQUILLA','BOGOTA','VALLE']]
-mpc_mensuales['AMAZONAS']=muertes_mensuales['AMAZONAS']/regiones['Población']['AMAZONAS']
-mpc_mensuales['ANTIOQUIA']=mpc_mensuales['ANTIOQUIA']/regiones['Población']['ANTIOQUIA']
-mpc_mensuales['BARRANQUILLA']=mpc_mensuales['BARRANQUILLA']/regiones['Población']['BARRANQUILLA']
-mpc_mensuales['BOGOTA']=mpc_mensuales['BOGOTA']/regiones['Población']['BOGOTA']
-mpc_mensuales['VALLE']=mpc_mensuales['VALLE']/regiones['Población']['VALLE']
+mpc_mensuales=pd.DataFrame(index=muertes_mensuales.index)
+for depto in regiones.index:
+  mpc_mensuales[depto]=muertes_mensuales[depto]/regiones['Población'][depto]
 
 print('-------------------------------------------------------------------')
-print('POBLACIÓN EN COLOMBIA: ',np.format_float_positional(regiones['Población'].sum(),precision=0))
-print('CASOS EN COLOMBIA: ',np.format_float_positional(regiones['Casos'].sum(),precision=0))
-print('MUERTES EN COLOMBIA: ',np.format_float_positional(regiones['Muertes'].sum(),precision=0))
-print('MUERTES PER CÁPITA EN COLOMBIA =',np.format_float_positional(regiones['Muertes'].sum()/regiones['Población'].sum()*100,precision=3),'%')
-print('LETALIDAD POR CASO EN COLOMBIA =',np.format_float_positional(regiones['Muertes'].sum()/regiones['Casos'].sum()*100,precision=3),'%')
+print('         POBLACIÓN EN COLOMBIA: ',np.format_float_positional(regiones['Población'].sum(),precision=0))
+print('             CASOS EN COLOMBIA: ',np.format_float_positional(regiones['Casos'].sum(),precision=0))
+print('           MUERTES EN COLOMBIA: ',np.format_float_positional(regiones['Muertes'].sum(),precision=0))
+print('MUERTES PER CÁPITA EN COLOMBIA:',np.format_float_positional(regiones['Muertes'].sum()/regiones['Población'].sum()*100,precision=3),'%')
+print('LETALIDAD POR CASO EN COLOMBIA:',np.format_float_positional(regiones['Muertes'].sum()/regiones['Casos'].sum()*100,precision=3),'%')
 print('-------------------------------------------------------------------')
 print('Estadísticas de edad de los casos en COLOMBIA:')
 print(covid['Edad'].describe())
 print('Estadísticas de edad de las muertes en COLOMBIA:')
-print(muertes['Edad'].describe())
+print(covid['Edad'][covid['Estado']=='Fallecido'].describe())
 print('-------------------------------------------------------------------')
 print('AVISO: LAS CURVAS DE *CASOS* DEPENDEN DE LAS PRUEBAS Y')
 print('POR CAMBIOS EN SU MUESTREO NO SON CONFIABLES')
@@ -189,7 +184,7 @@ plt.xlim(1,90)
 plt.ylim(0,40)
 plt.subplot(233)
 plt.violinplot(covid['Edad'])
-plt.violinplot(muertes['Edad'])
+plt.violinplot(covid['Edad'][covid['Estado']=='Fallecido'])
 plt.title('Distribución casos y muertes por edad',size=10)
 plt.ylabel('Edad')
 plt.legend(['Casos','_no label_','_no label_','_no label_','Muertes'])
@@ -226,11 +221,11 @@ sexo_dep=sexo_dep.sort_values(by='Muertes',ascending=False)
 del sexo_dep2
 
 print('-------------------------------------------------------------------')
-print('POBLACIÓN EN '+depto+': ',np.format_float_positional(regiones['Población'][depto].sum(),precision=0))
-print('CASOS EN '+depto+': ',np.format_float_positional(regiones['Casos'][depto].sum(),precision=0))
-print('MUERTES EN '+depto+': ',np.format_float_positional(regiones['Muertes'][depto].sum(),precision=0))
-print('MUERTES PER CÁPITA EN '+depto+' =',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Población'][depto].sum()*100,precision=3),'%')
-print('LETALIDAD POR CASO EN '+depto+' =',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Casos'][depto].sum()*100,precision=3),'%')
+print('          POBLACIÓN EN '+depto+': ',np.format_float_positional(regiones['Población'][depto].sum(),precision=0))
+print('              CASOS EN '+depto+': ',np.format_float_positional(regiones['Casos'][depto].sum(),precision=0))
+print('            MUERTES EN '+depto+': ',np.format_float_positional(regiones['Muertes'][depto].sum(),precision=0))
+print('MUERTES PER CÁPITA EN '+depto+' :',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Población'][depto].sum()*100,precision=3),'%')
+print('LETALIDAD POR CASO EN '+depto+' :',np.format_float_positional(regiones['Muertes'][depto].sum()/regiones['Casos'][depto].sum()*100,precision=3),'%')
 print('-------------------------------------------------------------------')
 print('Estadísticas de edad de los casos en ',depto)
 print(casos_dep['Edad'].describe())
@@ -324,16 +319,10 @@ plt.bar(sexo_dep.index,sexo_dep['CFR'],color='lime')
 plt.title('Letalidad COVID-19 por género',loc='left')
 plt.ylabel('Muertes/Casos (%)')
 
-deptos=fecha_muerte.drop(columns='COLOMBIA')
-deptos[:len(deptos.index)-2].rolling(window=7).mean().plot(figsize=(18,12))
+mpc[:len(mpc.index)-2].rolling(window=7).mean().plot(figsize=(18,12))
 plt.grid()
-plt.ylabel('Muertes diarias COVID-19')
-plt.title('Media móvil 7 días muertes diarias COVID-19')
+plt.ylabel('Muertes diarias COVID-19 / Población')
+plt.title('Media móvil 7 días muertes per cápita diarias COVID-19')
 plt.ylim(0,None)
 
-deptos_sint=fecha_sint.drop(columns='COLOMBIA')
-deptos_sint[:len(deptos_sint.index)-5].rolling(window=7).mean().plot(figsize=(18,12))
-plt.grid()
-plt.title('Media móvil 7 días inicio síntomas COVID-19')
-plt.ylabel('Inicio síntomas diarios COVID-19')
-plt.ylim(0,None)
+print(fecha_muerte['COLOMBIA'][len(fecha_muerte.index)-5:])
