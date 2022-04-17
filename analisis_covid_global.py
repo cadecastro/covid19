@@ -7,11 +7,6 @@ import numpy as np, pandas as pd, matplotlib.pyplot as plt
 pd.options.mode.chained_assignment = None  # default='warn'
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
-print('_____________________________________________________________________________________')
-print('                         ANALYSIS OF COVID-19 DATA WORLDWIDE                         ')
-print('                  Author: Carlos Armando De Castro - cadecastro.com                  ')
-print('                          Analysis and Engineering Services                          ')
-print('_____________________________________________________________________________________')
 
 #REPORTED DEATHS:
 #Data from GitHub:
@@ -27,8 +22,11 @@ muertes_diarias['World']=muertes_diarias.sum(axis=1)
 muertes_diarias['Year']=pd.DatetimeIndex(muertes_diarias.index).year
 muertes_diarias['Month']=pd.DatetimeIndex(muertes_diarias.index).month
 muertes_diarias['Period']=pd.DatetimeIndex(muertes_diarias.index).to_period('M').astype(str)
+muertes_diarias['Week']=pd.DatetimeIndex(muertes_diarias.index).to_period('W').astype(str)
 #Monthly deaths:
 muertes_mensuales=muertes_diarias.groupby('Period').sum()
+#Weekly:
+muertes_semanales=muertes_diarias.groupby('Week').sum()
 
 #CONFIRMED CASES:
 casos_global=pd.read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
@@ -42,14 +40,9 @@ casos_diarias.index=pd.to_datetime(casos_diarias.index,dayfirst=False,yearfirst=
 casos_diarias['World']=casos_diarias.sum(axis=1)
 casos_diarias['Period']=pd.DatetimeIndex(casos_diarias.index).to_period('M').astype(str)
 casos_diarias['Year']=pd.DatetimeIndex(casos_diarias.index).year
+casos_diarias['Week']=pd.DatetimeIndex(casos_diarias.index).to_period('W').astype(str)
 casos_mensuales=casos_diarias.groupby('Period').sum()
-
-print(' ')
-print('-----------------------------------------------------------------------')
-print('       Confirmed cases World : ',np.format_float_positional(casos_diarias['World'].sum(),precision=0))
-print('   Reported deaths Worldwide : ',np.format_float_positional(muertes_diarias['World'].sum(),precision=0))
-print('Case Fatality Rate Worldwide : ',np.format_float_positional(muertes_diarias['World'].sum()/casos_diarias['World'].sum()*100,precision=2),'%')
-print('-----------------------------------------------------------------------')
+casos_semanales=casos_diarias.groupby('Week').sum()
 
 #POPULATION OF THE WORLD:
 #UN Data:
@@ -76,7 +69,7 @@ doses=pd.pivot_table(data=vacunas,values='people_vaccinated_per_hundred',
 full=pd.pivot_table(data=vacunas,values='people_fully_vaccinated_per_hundred',
                         index='Period',columns='location',aggfunc=np.nanmax).fillna(0)
 boost=pd.pivot_table(data=vacunas,values='total_boosters_per_hundred',
-                        index='Period',columns='location',aggfunc=np.nanmax).fillna(0)
+                        index='location',columns='Period',aggfunc=np.nanmax).fillna(0)
 
 #RESIDENTIAL MOBILITY CHANGE:
 mov_global=pd.read_csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',usecols=['date','country_region','residential_percent_change_from_baseline'])
@@ -87,22 +80,17 @@ mov_global['Period']=pd.DatetimeIndex(mov_global.index).to_period('M').astype(st
 mov_month=mov_global.groupby('Period').mean()
 mov_year=mov_global.groupby('Year').mean()
 
-print(' ')
-print('_____________________________________________________________________________')
-print('Selected countries to analyze:')
-print(' ')
-countries=['Colombia','Mexico','Argentina','Peru','Ecuador','Panama','Brazil','Chile','Uruguay','Paraguay','Portugal','Germany','France','Italy','Austria','Poland',
-           'Sweden','Spain','Greece','Denmark','Netherlands','Belgium','Russia','Finland','United Kingdom','United States','Ireland','Australia','New Zealand','Canada',
-           'Israel','Turkey','Jordan','Saudi Arabia','Kuwait','Iraq','Lebanon','Egypt','Libya','Pakistan','Nigeria','South Africa','Kenya','Uganda','Mozambique','Ghana','Namibia',
-           'Rwanda','Japan','Vietnam','India','Philippines','Thailand','South Korea','Mongolia','Indonesia']
+#Countries to analyze:
+countries=set(vacunas['location']).intersection(set(muertes_diarias.columns))
+countries=countries.intersection(set(pob_mundial.index))
+countries=countries.intersection(set(mov_global.columns))
+
+#Comparison DataFrame:
 comparison=pd.DataFrame(index=countries,columns=['Deaths per capita (%)','Cases per capita (%)'])
 for country in countries:
   comparison['Deaths per capita (%)'][country]=muertes_mensuales[country].sum()/pob_mundial['PopTotal'][country]*100
   comparison['Cases per capita (%)'][country]=casos_mensuales[country].sum()/pob_mundial['PopTotal'][country]*100
 comparison=comparison.sort_values(by='Deaths per capita (%)',ascending=False)
-print(comparison)
-print('_____________________________________________________________________________')
-print(' ')
 
 #MONTHLY SUMMARY:
 monthly={}
@@ -143,19 +131,39 @@ def aproximacion_polinomial(x,y,n):
     
     return R2,y_pred, R2s
 
+
+print('_____________________________________________________________________________________')
+print('                         ANALYSIS OF COVID-19 DATA WORLDWIDE                         ')
+print('                  Author: Carlos Armando De Castro - cadecastro.com                  ')
+print('                          Analysis and Engineering Services                          ')
+print('_____________________________________________________________________________________')
+print(' ')
+print('-----------------------------------------------------------------------')
+print('       Confirmed cases World : ',np.format_float_positional(casos_diarias['World'].sum(),precision=0))
+print('   Reported deaths Worldwide : ',np.format_float_positional(muertes_diarias['World'].sum(),precision=0))
+print('Case Fatality Rate Worldwide : ',np.format_float_positional(muertes_diarias['World'].sum()/casos_diarias['World'].sum()*100,precision=2),'%')
+print('-----------------------------------------------------------------------')
+print(' ')
+print('_____________________________________________________________________________')
+print('Selected countries to analyze:')
+print(' ')
+print(comparison)
+print('_____________________________________________________________________________')
+print(' ')
+
 #PLOTS:
-plt.figure(1,figsize=(12,6))
-plt.subplot(211)
+plt.figure(1,figsize=(15,15))
+plt.subplot(411)
 #plt.bar(casos_diarias.index,casos_diarias['World'],color='blue')
 plt.plot(casos_diarias.index,casos_diarias['World'].rolling(window =7).mean(),'navy')
-plt.title('Daily COVID-19 report Worldwide')
+plt.title('Daily and Weekly COVID-19 report Worldwide')
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Daily Cases')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(casos_diarias.index[0],casos_diarias.index[len(casos_diarias.index)-1])
 plt.legend(['Rolling average 7 days','Daily data'])
-plt.subplot(212)
+plt.subplot(412)
 #plt.bar(muertes_diarias.index,muertes_diarias['World'],color='blue')
 plt.plot(muertes_diarias.index,muertes_diarias['World'].rolling(window =7).mean(),'lime')
 plt.ylabel('Daily Deaths')
@@ -163,6 +171,22 @@ plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(muertes_diarias.index[0],muertes_diarias.index[len(muertes_diarias.index)-1])
 plt.legend(['Rolling average 7 days','Daily data'])
+plt.subplot(413)
+plt.bar(casos_semanales.index,casos_semanales['World'],color='navy')
+plt.plot(casos_semanales.index,casos_semanales['World'].rolling(window =2).mean(),'lime')
+plt.ylabel('Weekly Cases')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend(['Rolling average 2 weeks','Weekly data'])
+plt.subplot(414)
+plt.bar(muertes_semanales.index,muertes_semanales['World'],color='navy')
+plt.plot(muertes_semanales.index,muertes_semanales['World'].rolling(window =2).mean(),'lime')
+plt.ylabel('Weekly Deaths')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend(['Rolling average 2 weeks','Weekly data'])
 
 plt.figure(2,figsize=(12,11))
 plt.subplot(211)
@@ -184,13 +208,13 @@ plt.ylim(0,None)
 plt.xticks(rotation=90)
 plt.legend(['Rolling average 2 months','Monthly data'])
 
-plt.figure(3,figsize=(12,6))
+plt.figure(3,figsize=(18,6))
 plt.bar(comparison.index,comparison['Deaths per capita (%)'],color='navy')
 plt.title('Total COVID-19 Deaths per Capita',size=15)
 plt.title('cadecastro.com',size=10,loc='right')
 plt.ylabel('COVID-19 Deaths per Capita (%)')
 plt.xlabel('Data source: CSSEGISandData/COVID-19 & https://population.un.org/',size=8)
-plt.xticks(rotation=90)
+plt.xticks(rotation=90,size=8)
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 
@@ -198,23 +222,23 @@ country=str(input('Country to analyze: '))
 
 print(' ')
 print('-----------------------------------------------------------------------')
-print('   Confirmed cases at ',country,': ',np.format_float_positional(casos_diarias[country].sum(),precision=0))
-print('   Reported deaths at ',country,': ',np.format_float_positional(muertes_diarias[country].sum(),precision=0))
-print('Case Fatality Rate at ',country,': ',np.format_float_positional(muertes_diarias[country].sum()/casos_diarias[country].sum()*100,precision=2),'%')
+print('|   Confirmed cases at ',country,': ',np.format_float_positional(casos_diarias[country].sum(),precision=0))
+print('|   Reported deaths at ',country,': ',np.format_float_positional(muertes_diarias[country].sum(),precision=0))
+print('|Case Fatality Rate at ',country,': ',np.format_float_positional(muertes_diarias[country].sum()/casos_diarias[country].sum()*100,precision=2),'%')
 print('-----------------------------------------------------------------------')
 
-plt.figure(4,figsize=(12,6))
-plt.subplot(211)
+plt.figure(4,figsize=(15,15))
+plt.subplot(411)
 #plt.bar(casos_diarias.index,casos_diarias[country],color='blue')
 plt.plot(casos_diarias.index,casos_diarias[country].rolling(window =7).mean(),'navy')
-plt.title('Daily COVID-19 report at '+country)
+plt.title('Daily and Weekly COVID-19 report at '+country)
 plt.title('cadecastro.com',loc='right')
 plt.ylabel('Daily Cases')
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(casos_diarias.index[0],casos_diarias.index[len(casos_diarias.index)-1])
 plt.legend(['Rolling average 7 days','Daily data'])
-plt.subplot(212)
+plt.subplot(412)
 #plt.bar(muertes_diarias.index,muertes_diarias[country],color='blue')
 plt.plot(muertes_diarias.index,muertes_diarias[country].rolling(window =7).mean(),'lime')
 plt.ylabel('Daily Deaths')
@@ -222,6 +246,22 @@ plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xlim(muertes_diarias.index[0],muertes_diarias.index[len(muertes_diarias.index)-1])
 plt.legend(['Rolling average 7 days','Daily data'])
+plt.subplot(413)
+plt.bar(casos_semanales.index,casos_semanales[country],color='navy')
+plt.plot(casos_semanales.index,casos_semanales[country].rolling(window =2).mean(),'lime')
+plt.ylabel('Weekly Cases')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend(['Rolling average 2 weeks','Weekly data'])
+plt.subplot(414)
+plt.bar(muertes_semanales.index,muertes_semanales[country],color='navy')
+plt.plot(muertes_semanales.index,muertes_semanales[country].rolling(window =2).mean(),'lime')
+plt.ylabel('Weekly Deaths')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend(['Rolling average 2 weeks','Weekly data'])
 
 plt.figure(5,figsize=(12,22))
 plt.subplot(411)
@@ -271,7 +311,8 @@ for country in countries:
     comparison2[j][country]=monthly[country][j][period]
 
 comparison2=comparison2.sort_values(by='Deaths per capita (%)',ascending=False)
-print(comparison2)
+#Correlation between Boosters Rate and Deaths per capita:
+comparison3=pd.merge(left=comparison2,right=boost[period],left_index=True,right_index=True).rename(columns={period:'Boosted (%)'})
 
 #Correlation between Residential Mobility and Deaths per capita:
 x=comparison2['Residential mobility change (%)'].astype(float)
@@ -301,6 +342,22 @@ plt.title('COVID-19 Deaths vs. Fully Vax (%) in '+period+' - R²='+R2s,size=12,l
 plt.title('cadecastro.com',size=8,loc='right')
 plt.ylabel('Monthly COVID-19 Deaths per capita (%)',size=12)
 plt.xlabel('Fully Vax (%)',size=12)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+for j in range(len(x)):
+  ax.text(x[j], y[j], x.index[j], size=10)
+
+#Correlation between Boosters Rate and Deaths per capita:
+x=comparison3['Boosted (%)'].astype(float)
+y=comparison3['Deaths per capita (%)'].astype(float)
+R2,y_pred, R2s=aproximacion_polinomial(x,y,1)
+fig, ax = plt.subplots(figsize=(12,6)) #Figure 8
+plt.plot(x,y,'bo')
+plt.plot(x,y_pred,'lime')
+plt.title('COVID-19 Deaths vs. Boosted (%) in '+period+' - R²='+R2s,size=12,loc='left')
+plt.title('cadecastro.com',size=8,loc='right')
+plt.ylabel('Monthly COVID-19 Deaths per capita (%)',size=12)
+plt.xlabel('Boosted (%)',size=12)
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 for j in range(len(x)):
