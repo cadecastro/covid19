@@ -1,24 +1,16 @@
-"""
-ANÁLISIS CIFRAS COVID-19 COLOMBIA
-Autor: Carlos Armando De Castro (cadecastro.com)
-"""
-import pandas as pd
-pd.options.mode.chained_assignment = None  # default='warn'
-import matplotlib.pyplot as plt
-import numpy as np
+print('-------------------------------------------------')
+print('        ANÁLISIS CIFRAS COVID-19 COLOMBIA        ')
+print('Carlos Armando De Castro - https://cadecastro.com')
+print('-------------------------------------------------')
+print(' ')
 
-print('_______________________________________________________________________')
-print('|                  ANÁLISIS CIFRAS COVID-19 COLOMBIA                  |')
-print('|          Autor: Carlos Armando De Castro - cadecastro.com           |')
-print('_______________________________________________________________________')
+import pandas as pd , numpy as np , matplotlib.pyplot as plt
+pd.options.mode.chained_assignment = None  # default='warn'
 
 #Importar datos de Datos Abiertos Colombia:
-columnas=['Nombre departamento','Edad','Sexo','Ubicación del caso','Estado','Fecha de inicio de síntomas','Fecha de muerte']
+print('Cargando datos de casos positivos COVID-19 Colombia...')
+columnas=['Nombre departamento','Nombre municipio','Edad','Sexo','Ubicación del caso','Estado','Fecha de inicio de síntomas','Fecha de muerte']
 covid=pd.read_csv('https://www.datos.gov.co/api/views/gt2j-8ykr/rows.csv',usecols=columnas)
-#Importar datos de población:
-poblacion=pd.read_csv('https://raw.githubusercontent.com/cadecastro/analisis_datos/main/poblacion_deptos_2021.csv')
-poblacion=poblacion.set_index('DEPARTAMENTO')
-poblacion=poblacion.rename(columns={'POBLACION 2021':'Población'})
 #Convertir fechas de muerte a formato adecuado:
 covid["Fecha de muerte"] = pd.to_datetime(covid["Fecha de muerte"],dayfirst=True)
 covid["Fecha de inicio de síntomas"] = pd.to_datetime(covid["Fecha de inicio de síntomas"],dayfirst=True)
@@ -27,6 +19,25 @@ covid['Nombre departamento']=covid['Nombre departamento'].replace(to_replace=['T
                                                                   value=['TOLIMA','CALDAS','SANTA MARTA','CUNDINAMARCA','SANTANDER'])
 covid['Sexo']=covid['Sexo'].replace(to_replace=['m','f'],value=['M','F'])
 covid["Período"] = pd.DatetimeIndex(covid["Fecha de muerte"]).to_period('M').astype(str)
+print('Datos COVID-19 cargados.')
+
+#Importar datos de población:
+print('Cargando datos población...')
+poblacion=pd.read_csv('https://raw.githubusercontent.com/cadecastro/analisis_datos/main/poblacion_deptos_2021.csv')
+poblacion=poblacion.set_index('DEPARTAMENTO')
+poblacion=poblacion.rename(columns={'POBLACION 2021':'Población'})
+#Lectura datos población municipal:
+anho=2021
+pob_mun=pd.read_excel('https://github.com/cadecastro/analisis_datos/blob/main/anexo-proyecciones-poblacion-Municipal_Area_2018-2035.xlsx?raw=true',sheet_name=0,skiprows=11)
+pob_mun=pob_mun[(pob_mun['AÑO']==anho)&(pob_mun['ÁREA GEOGRÁFICA']=='Total')].set_index('MPIO').drop(columns=['DPMP',
+                                                                                'DP','AÑO','ÁREA GEOGRÁFICA']).rename(columns={'Total':'Población 2021'})
+pob_mun=pob_mun[pob_mun['Población '+str(anho)]>200000] #Sólo municipios con más de 200k habitantes.
+pob_mun.index=pob_mun.index.str.title()
+pob_mun=pob_mun.rename(index={'Bogotá, D.C.':'Bogota','Medellín':'Medellin','San José De Cúcuta':'Cucuta',
+                              'Ibagué':'Ibague','Popayán':'Popayan','Montería':'Monteria','San Andrés De Tumaco':'Tumaco','Tuluá':'Tulua','Cartagena De Indias':'Cartagena'})
+print('Datos población cargados.')
+print('')
+print('Continuar análisis.')
 
 #RESUMEN REGIONES:
 casos_regiones=pd.pivot_table(covid,values='Edad',index='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
@@ -41,6 +52,7 @@ regiones=regiones.sort_values(by='MPC',ascending=False)
 #Conteo de muertes por fecha de ocurrencia:
 fecha_muerte=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Edad',index='Fecha de muerte',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 fecha_muerte['COLOMBIA']=fecha_muerte.sum(axis=1)
+fecha_muerte['Semana']=pd.DatetimeIndex(fecha_muerte.index).to_period('W').astype(str)
 #Conteo de casos por fecha de inicio de síntomas:
 fecha_sint=pd.pivot_table(data=covid,values='Edad',index='Fecha de inicio de síntomas',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 fecha_sint['COLOMBIA']=fecha_sint.sum(axis=1)
@@ -75,11 +87,25 @@ for depto in regiones.index:
 #MUERTES MENSUALES:
 muertes_mensuales=pd.pivot_table(data=covid[covid['Estado']=='Fallecido'],values='Edad',index='Período',columns='Nombre departamento',aggfunc=np.count_nonzero).fillna(0)
 muertes_mensuales['COLOMBIA']=muertes_mensuales.sum(axis=1)
-
+#Muertes semanales:
+muertes_semanales=fecha_muerte.groupby(by='Semana').sum()
+#Muertes per cápita mensuales:
 mpc_mensuales=pd.DataFrame(index=muertes_mensuales.index)
 for depto in regiones.index:
   mpc_mensuales[depto]=muertes_mensuales[depto]/regiones['Población'][depto]
 
+#Muertes municipios:
+muertes_mun=pd.pivot_table(covid[covid['Estado']=='Fallecido'],values='Edad',index='Nombre municipio',aggfunc=np.count_nonzero).fillna(0)
+muertes_mun.index=muertes_mun.index.str.title()
+muertes_mun=pob_mun.join(muertes_mun).dropna().rename(columns={'Edad':'Muertes covid'})
+muertes_mun['Muertes per capita (%)']=muertes_mun['Muertes covid']/muertes_mun['Población 2021']*100
+muertes_mun=muertes_mun.sort_values(by='Muertes per capita (%)',ascending=False)
+
+#Salida respuestas:
+print('_______________________________________________________________________')
+print('|                  ANÁLISIS CIFRAS COVID-19 COLOMBIA                  |')
+print('|          Autor: Carlos Armando De Castro - cadecastro.com           |')
+print('_______________________________________________________________________')
 print('-------------------------------------------------------------------')
 print('         POBLACIÓN EN COLOMBIA: ',np.format_float_positional(regiones['Población'].sum(),precision=0))
 print('             CASOS EN COLOMBIA: ',np.format_float_positional(regiones['Casos'].sum(),precision=0))
@@ -96,7 +122,8 @@ print('AVISO: LAS CURVAS DE *CASOS* DEPENDEN DE LAS PRUEBAS Y')
 print('POR CAMBIOS EN SU MUESTREO NO SON CONFIABLES')
 print('*LA ATENCIÓN DEBE CENTRARSE EN LAS CURVAS DE MUERTES DIARIAS*')
 
-plt.figure(1,figsize=(15,15))
+cdc=1
+plt.figure(cdc,figsize=(15,15))
 plt.subplot(311)
 plt.plot(fecha_muerte.index[:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][:len(fecha_muerte)-1].rolling(window =7).mean(),color='lime')
 plt.title('Cifras diarias COVID-19 en Colombia',loc='left')
@@ -123,8 +150,10 @@ plt.grid(True,which='both',axis='both')
 plt.ylim(0,None)
 plt.xlim(mpc.index[0],mpc.index[len(mpc.index)-2])
 plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(2,figsize=(12,5))
+plt.figure(cdc,figsize=(15,15))
+plt.subplot(211)
 plt.bar(muertes_mensuales.index,muertes_mensuales['COLOMBIA'],color='navy')
 plt.plot(muertes_mensuales.index,muertes_mensuales['COLOMBIA'].rolling(window =2).mean(),color='lime')
 plt.title('Muertes mensuales COVID-19 en COLOMBIA')
@@ -134,9 +163,19 @@ plt.xticks(rotation=90)
 plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-1])
 plt.legend(['Media móvil 2 meses','Datos'])
 plt.ylabel('Muertes mensuales')
+plt.subplot(212)
+plt.bar(muertes_semanales.index,muertes_semanales['COLOMBIA'],color='navy',label='Dato semanal')
+plt.plot(muertes_semanales.index,muertes_semanales['COLOMBIA'].rolling(window =2).mean(),color='lime',label='Media móvil 2 semanas')
+plt.title('Muertes semanales COVID-19 en COLOMBIA')
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend()
+plt.ylabel('Muertes semanales')
 plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(3,figsize=(12,10))
+plt.figure(cdc,figsize=(12,10))
 plt.subplot(211)
 plt.bar(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][len(fecha_muerte)-31:len(fecha_muerte)-1],color='navy')
 plt.plot(fecha_muerte.index[len(fecha_muerte)-31:len(fecha_muerte)-1],fecha_muerte['COLOMBIA'][len(fecha_muerte)-31:len(fecha_muerte)-1].rolling(window=7).mean(),color='lime')
@@ -154,15 +193,27 @@ plt.ylim(0,None)
 plt.xlim(fecha_sint.index[len(fecha_sint)-36],fecha_sint.index[len(fecha_sint)-7])
 plt.ylabel('Casos diarios')
 plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(4,figsize=(12,8))
+plt.figure(cdc,figsize=(15,6))
 plt.bar(regiones.index,regiones['MPC'],color='navy')
 plt.title('Muertes COVID-19 per cápita')
 plt.ylabel('Muertes/Habitantes (%)')
 plt.grid(True,which='both',axis='y')
 plt.xticks(rotation=90)
+cdc+=1
 
-plt.figure(5,figsize=(20,12))
+plt.figure(cdc,figsize=(15,6))
+plt.bar(muertes_mun.index,muertes_mun['Muertes per capita (%)'],color='navy')
+plt.grid(axis='y')
+plt.title('Muertes por COVID-19 per cápita en ciudades de Colombia',loc='left',size=14)
+plt.title('Análisis: cadecastro.com',loc='right')
+plt.ylabel('Muertes/Habitantes (%)')
+plt.grid(True,which='both',axis='y')
+plt.xticks(rotation=90)
+cdc+=1
+
+plt.figure(cdc,figsize=(20,12))
 plt.subplot(231)
 plt.fill_between(edades.index,edades['Casos'],color='navy')
 plt.fill_between(edades.index,edades['Muertes'],color='lime')
@@ -199,6 +250,9 @@ plt.subplot(236)
 plt.bar(sexo.index,sexo['CFR'],color='lime')
 plt.title('Letalidad COVID-19 por género')
 plt.ylabel('Muertes/Casos (%)')
+cdc+=1
+
+print('------------------------------------------------------------')
 
 #REGIÓN A ANALIZAR:
 depto=str(input('Departamento o distrito a analizar (todo en mayúsculas):'))
@@ -236,7 +290,7 @@ print('AVISO: LAS CURVAS DE *CASOS* DEPENDEN DE LAS PRUEBAS Y')
 print('POR CAMBIOS EN SU MUESTREO NO SON CONFIABLES')
 print('*LA ATENCIÓN DEBE CENTRARSE EN LAS CURVAS DE MUERTES DIARIAS*')
 
-plt.figure(6,figsize=(12,10))
+plt.figure(cdc,figsize=(12,10))
 plt.subplot(211)
 plt.plot(fecha_muerte[depto][:len(fecha_muerte.index)-1].rolling(window =7).mean(),color='lime')
 plt.title('Cifras diarias COVID-19 '+depto,loc='left')
@@ -253,19 +307,32 @@ plt.xlim(fecha_sint.index[0],fecha_sint.index[len(fecha_sint.index)-7])
 plt.legend(['Media móvil 7 días'])
 plt.ylabel('Inicio síntomas diarios')
 plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(7,figsize=(12,5))
+plt.figure(cdc,figsize=(15,15))
+plt.subplot(211)
 plt.bar(muertes_mensuales.index,muertes_mensuales[depto],color='navy')
 plt.plot(muertes_mensuales.index,muertes_mensuales[depto].rolling(window =2).mean(),color='lime')
-plt.title('Muertes mensuales COVID-19 en '+depto,loc='left')
+plt.title('Muertes mensuales COVID-19 en '+depto)
 plt.grid(True,'both','both')
 plt.ylim(0,None)
 plt.xticks(rotation=90)
 plt.xlim(muertes_mensuales.index[0],muertes_mensuales.index[len(muertes_mensuales.index)-1])
 plt.legend(['Media móvil 2 meses','Datos'])
 plt.ylabel('Muertes mensuales')
+plt.subplot(212)
+plt.bar(muertes_semanales.index,muertes_semanales[depto],color='navy',label='Dato semanal')
+plt.plot(muertes_semanales.index,muertes_semanales[depto].rolling(window =2).mean(),color='lime',label='Media móvil 2 semanas')
+plt.title('Muertes semanales COVID-19 en '+depto)
+plt.grid(True,'both','both')
+plt.ylim(0,None)
+plt.xticks(rotation=90,size=6)
+plt.legend()
+plt.ylabel('Muertes semanales')
+plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(8,figsize=(12,12))
+plt.figure(cdc,figsize=(12,12))
 plt.subplot(211)
 plt.bar(fecha_muerte.index[len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],fecha_muerte[depto][len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],color='navy')
 plt.plot(fecha_muerte.index[len(fecha_muerte.index)-31:len(fecha_muerte.index)-1],fecha_muerte[depto][len(fecha_muerte.index)-31:len(fecha_muerte.index)-1].rolling(window=7).mean(),color='lime')
@@ -283,8 +350,9 @@ plt.ylim(0,None)
 plt.xlim(fecha_sint.index[len(fecha_sint.index)-36],fecha_sint.index[len(fecha_sint.index)-7])
 plt.ylabel('Casos diarios')
 plt.xlabel('cadecastro.com')
+cdc+=1
 
-plt.figure(9,figsize=(16,12))
+plt.figure(cdc,figsize=(16,12))
 plt.subplot(231)
 plt.fill_between(edades_dep.index,edades_dep['Casos'],color='navy')
 plt.fill_between(edades_dep.index,edades_dep['Muertes'],color='lime')
@@ -318,11 +386,4 @@ plt.subplot(236)
 plt.bar(sexo_dep.index,sexo_dep['CFR'],color='lime')
 plt.title('Letalidad COVID-19 por género',loc='left')
 plt.ylabel('Muertes/Casos (%)')
-
-mpc[:len(mpc.index)-2].rolling(window=7).mean().plot(figsize=(18,12))
-plt.grid()
-plt.ylabel('Muertes diarias COVID-19 / Población')
-plt.title('Media móvil 7 días muertes per cápita diarias COVID-19')
-plt.ylim(0,None)
-
-print(fecha_muerte['COLOMBIA'][len(fecha_muerte.index)-5:])
+cdc+=1
