@@ -46,7 +46,7 @@ casos_semanales=casos_diarias.groupby('Week').sum()
 
 #POPULATION OF THE WORLD:
 #UN Data:
-pob_mundial=pd.read_csv('https://population.un.org/wpp/Download/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2019_TotalPopulationBySex.csv',
+pob_mundial=pd.read_csv('https://population.un.org/wpp/Download/Files/1_Indicators%20(Standard)/CSV_FILES/WPP2022_TotalPopulationBySex.zip', compression='zip',
                         usecols=['Location','Variant','Time','PopTotal']).replace(to_replace={'United States of America':'United States',
                                                                                               'Viet Nam':'Vietnam','Republic of Korea':'South Korea',
                                                                                               'Iran (Islamic Republic of)':'Iran','Russian Federation':'Russia'})
